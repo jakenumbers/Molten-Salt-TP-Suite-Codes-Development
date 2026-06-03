@@ -810,7 +810,7 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
                              show_all_planck=True):
     """Plot spectral absorption coefficient vs wavelength for all temperatures."""
     if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
+        fig, ax = plt.subplots(figsize=(6,4), constrained_layout=True)
     else:
         fig = ax.figure
 
@@ -836,9 +836,9 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
         for wl_peak, label in salt.ir_peaks_um:
             ax.axvline(x=wl_peak, color='gray', linestyle='--',
                        alpha=0.5, linewidth=0.8, zorder=1)
-            ax.text(wl_peak + 0.5, 0.85, label,
+            ax.text(wl_peak + 0.6, 0.25, label,
                     transform=ax.get_xaxis_transform(),
-                    rotation=90, fontsize=8, color='gray', va='top', zorder=2)
+                    rotation=90, fontsize=9, color='gray', va='top', zorder=2)
 
     # Planck curves and experimental data
     if show_planck:
@@ -862,16 +862,16 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
 
         # Experimental data points
         if salt.experimental_data:
-            clrs = ['red', 'blue', 'green', 'orange', 'purple',
-                    'brown', 'pink', 'gray']
+            clrs = ['yellow','green','pink','red', 'blue', 'orange', 
+                    'brown','gray']
             mkrs = ['o', 's', '^', 'v', 'D', '*', 'P', 'X']
             for i, exp in enumerate(salt.experimental_data):
                 if exp.get('wavelength_um'):
                     ax.scatter(exp['wavelength_um'], exp['absorption_m1'],
                                color=clrs[i % len(clrs)],
                                marker=mkrs[i % len(mkrs)],
-                               s=50, zorder=5, edgecolors='black',
-                               linewidth=0.5, alpha=0.6,
+                               s=25, zorder=5, edgecolors='black',
+                               linewidth=0.5, alpha=0.8,
                                label=exp.get('label', f'Exp {i+1}'))
 
         ax2.set_yscale('log')
@@ -883,7 +883,7 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
         lines1, labels1 = ax.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax2.legend(lines1 + lines2, labels1 + labels2,
-                   loc='upper right', fontsize=8, framealpha=0.9,
+                   loc='upper right', fontsize=9, framealpha=0.9,
                    edgecolor='black')
     else:
         if salt.experimental_data:
@@ -894,10 +894,10 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
                     ax.scatter(exp['wavelength_um'], exp['absorption_m1'],
                                color=clrs[i % len(clrs)],
                                marker=mkrs[i % len(mkrs)],
-                               s=50, zorder=5, edgecolors='black',
+                               s=25, zorder=5, edgecolors='black',
                                linewidth=0.5, alpha=0.6,
                                label=exp.get('label', f'Exp {i+1}'))
-        ax.legend(loc='upper right', fontsize=8, framealpha=0.9,
+        ax.legend(loc='upper right', fontsize=9, framealpha=0.9,
                   edgecolor='black')
 
     ax.set_xlabel('Wavelength ($\\mu$m)')
@@ -910,7 +910,7 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
 def plot_refractive_index(salt, wl_m, T_list, n_results, ax=None):
     """Plot refractive index vs wavelength for all temperatures."""
     if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
+        fig, ax = plt.subplots(figsize=(6,4), constrained_layout=True)
     else:
         fig = ax.figure
 
@@ -933,7 +933,9 @@ def plot_refractive_index(salt, wl_m, T_list, n_results, ax=None):
         exp_n_data = salt.experimental_n
         if isinstance(exp_n_data, dict):
             exp_n_data = [exp_n_data]
-        clrs = ['red', 'blue', 'green', 'orange']
+        # Use marker colors that are distinct from the common spectrum line
+        # colors (blue/red) so experimental points are easy to distinguish.
+        clrs = ['purple', 'green', 'orange', 'brown']
         mkrs = ['o', 's', '^', 'v']
         for i, exp in enumerate(exp_n_data):
             if exp is None:
@@ -944,8 +946,8 @@ def plot_refractive_index(salt, wl_m, T_list, n_results, ax=None):
                 ax.scatter(wl_exp, n_exp,
                            color=clrs[i % len(clrs)],
                            marker=mkrs[i % len(mkrs)],
-                           s=50, zorder=5, edgecolors='black',
-                           linewidth=0.5, alpha=0.6,
+                           s=56, zorder=5, edgecolors='black',
+                           linewidth=0.5, alpha=0.65,
                            label=exp.get('label', f'Exp n {i+1}'))
 
     ax.set_xlabel('Wavelength ($\\mu$m)')
@@ -953,7 +955,7 @@ def plot_refractive_index(salt, wl_m, T_list, n_results, ax=None):
     ax.set_xlim(0, wl_um[-1] + 2)
     lines, labels = ax.get_legend_handles_labels()
     if labels:
-        ax.legend(lines, labels, loc='upper right', fontsize=8,
+        ax.legend(lines, labels, loc='upper right', fontsize=9,
                   framealpha=0.9, edgecolor='black')
     return fig
 
@@ -961,7 +963,7 @@ def plot_refractive_index(salt, wl_m, T_list, n_results, ax=None):
 def plot_planck_mean_vs_temperature(salt, T_array, kappa_P_array, ax=None):
     """Plot Planck-mean absorption coefficient vs temperature."""
     if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
+        fig, ax = plt.subplots(figsize=(5,2), constrained_layout=True)
     else:
         fig = ax.figure
 
@@ -986,8 +988,12 @@ def plot_planck_mean_vs_temperature(salt, T_array, kappa_P_array, ax=None):
 
     ax.set_xlabel('Temperature (K)')
     ax.set_ylabel('Planck-mean $\\kappa_P$ (m$^{-1}$)')
-    ax.set_title(f'{salt.name}', fontweight='bold')
+    ax.text(0.4, 0.96, salt.name, transform=ax.transAxes,
+        fontsize=14, fontweight='bold', va='top', ha='left',
+        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=2),
+        zorder=10)
     ax.legend(loc='best', fontsize=9)
+    ax.set_ylim(0,20000)
     return fig
 
 
@@ -996,7 +1002,7 @@ def plot_transferability(all_pair_data: List[Dict], output_dir: str):
     Grouped transferability plot: alpha/omega_0 by ion pair,
     with each point labeled by source salt.
     """
-    fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(6,4), constrained_layout=True)
 
     # Group by ion pair
     pair_groups = {}
@@ -1047,18 +1053,23 @@ def plot_transferability(all_pair_data: List[Dict], output_dir: str):
     ax.set_xticklabels(x_labels, fontweight='bold')
     ax.set_xlabel('Ion Pair')
     ax.set_ylabel('$\\alpha/\\omega_0$ ($\\times 10^{-14}$ s)')
-    ax.set_title('Multiphonon Anharmonicity: Transferability Check')
-    ax.legend(loc='upper left', fontsize=8, framealpha=0.9, edgecolor='black')
+    # ax.set_title('Multiphonon Anharmonicity: Transferability Check')
+    ax.legend(loc='upper left', fontsize=9, framealpha=0.9, edgecolor='black')
 
     fig.savefig(os.path.join(output_dir, 'transferability_alpha_omega0.png'),
-                bbox_inches='tight')
+                bbox_inches='tight', dpi=1200)
+    fig.savefig(os.path.join(output_dir, 'transferability_alpha_omega0.pdf'),
+                bbox_inches='tight', dpi=1200)
     return fig
 
 
 def plot_alpha_omega0_vs_r0(all_pair_data: List[Dict],
                             output_dir: str,
                             predicted_data: Optional[List[Dict]] = None,
-                            filename: str = 'alpha_omega0_vs_r0.png'):
+                            filename: str = 'alpha_omega0_vs_r0.png',
+                            interactive_labels: bool = False,
+                            label_positions_file: Optional[str] = None,
+                            save_label_positions_file: Optional[str] = None):
     """
     Scatter plot of alpha/omega_0 vs r_0 with linear regression.
 
@@ -1068,28 +1079,29 @@ def plot_alpha_omega0_vs_r0(all_pair_data: List[Dict],
     Returns (f_slope, f_intercept, f_r2, cl_intercept) for the regression
     lines, in units of 1e-14 s per Angstrom.
     """
-    fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
 
     # Separate by anion family
     f_data  = [d for d in all_pair_data if d['anion_family'] == 'F']
     cl_data = [d for d in all_pair_data if d['anion_family'] == 'Cl']
 
     # --- Plot fitted points (filled circles) ---
+    import json
+
+    # Plot points and prepare labels. We create annotations which can be
+    # draggable in interactive mode and can be saved/loaded from a JSON file.
+    plotted_points = []  # list of (x, y, text, color, kwargs)
     for d in f_data:
-        ax.scatter(d['r0'], d['ratio'] * 1e14, s=100, c='steelblue',
-                   edgecolors='black', linewidth=0.8, zorder=5)
-        ax.annotate(f"{d['pair']} ({d['salt']})",
-                    (d['r0'], d['ratio'] * 1e14),
-                    textcoords="offset points", xytext=(6, 6),
-                    fontsize=7, color='steelblue')
+        x = d['r0']
+        y = d['ratio'] * 1e14
+        ax.scatter(x, y, s=100, c='steelblue', edgecolors='black', linewidth=0.8, zorder=5)
+        plotted_points.append((x, y, f"{d['pair']} ({d['salt']})", 'steelblue', {'fontsize': 7}))
 
     for d in cl_data:
-        ax.scatter(d['r0'], d['ratio'] * 1e14, s=100, c='firebrick',
-                   edgecolors='black', linewidth=0.8, zorder=5)
-        ax.annotate(f"{d['pair']} ({d['salt']})",
-                    (d['r0'], d['ratio'] * 1e14),
-                    textcoords="offset points", xytext=(6, 6),
-                    fontsize=7, color='firebrick')
+        x = d['r0']
+        y = d['ratio'] * 1e14
+        ax.scatter(x, y, s=100, c='firebrick', edgecolors='black', linewidth=0.8, zorder=5)
+        plotted_points.append((x, y, f"{d['pair']} ({d['salt']})", 'firebrick', {'fontsize': 7}))
 
     # --- Fluoride linear regression ---
     f_slope, f_intercept, f_r2 = 0.0, 0.0, 0.0
@@ -1108,9 +1120,10 @@ def plot_alpha_omega0_vs_r0(all_pair_data: List[Dict],
             min(r0_f.min(), 1.2) - 0.2,
             max(r0_f.max(), 3.0) + 0.4, 100)
         ax.plot(r0_line, slope * r0_line + intercept, '--',
-                color='steelblue', linewidth=1.5,
-                label=(f'F$^-$ fit: $\\alpha/\\omega_0$ = '
-                       f'{slope:.2f}$r_0$ {intercept:+.2f} '
+                color='steelblue', linewidth=1.2,
+                label=(f'F$^-$ fit: '
+                       f'$\\alpha/\\omega_0$ = '
+                       f'{slope:.1f}$r_0$ {intercept:+.1f} '
                        f'($R^2$={f_r2:.3f})'))
 
     # --- Chloride: same slope, shifted intercept ---
@@ -1123,40 +1136,116 @@ def plot_alpha_omega0_vs_r0(all_pair_data: List[Dict],
             min(r0_cl.min(), 2.0) - 0.3,
             max(r0_cl.max(), 3.5) + 0.4, 100)
         ax.plot(r0_line_cl, f_slope * r0_line_cl + cl_intercept, '--',
-                color='firebrick', linewidth=1.5,
+                color='firebrick', linewidth=1.2,
                 label=(f'Cl$^-$ (same slope): '
-                       f'$\\alpha/\\omega_0$ = {f_slope:.2f}$r_0$ '
-                       f'{cl_intercept:+.2f}'))
+                       f'$\\alpha/\\omega_0$ = {f_slope:.1f}$r_0$ '
+                       f'{cl_intercept:+.1f}'))
 
     # --- Plot predicted points (unfilled circles) ---
     if predicted_data:
         for d in predicted_data:
             color = 'steelblue' if d['anion_family'] == 'F' else 'firebrick'
-            ax.scatter(d['r0'], d['ratio'] * 1e14, s=120,
-                       facecolors='none', edgecolors=color,
-                       linewidth=1.5, zorder=6, marker='o')
-            ax.annotate(f"{d['pair']} ({d['salt']})",
-                        (d['r0'], d['ratio'] * 1e14),
-                        textcoords="offset points", xytext=(6, -10),
-                        fontsize=7, color=color, fontstyle='italic')
+            x = d['r0']
+            y = d['ratio'] * 1e14
+            ax.scatter(x, y, s=120, facecolors='none', edgecolors=color,
+                       linewidth=1.2, zorder=6, marker='o')
+            plotted_points.append((x, y, f"{d['pair']} ({d['salt']})", color, {'fontsize': 7, 'fontstyle': 'italic'}))
+
+    # Create annotations. If a label_positions_file is provided, use those
+    # coordinates (data-space) for the text positions. Otherwise place labels
+    # at small offsets from the points. Annotations are created with
+    # arrowprops so the leader line is visible.
+    annotations = []
+    # try to load saved positions
+    saved_positions = {}
+    if label_positions_file:
+        try:
+            with open(label_positions_file, 'r') as f:
+                saved_positions = json.load(f)
+        except Exception:
+            saved_positions = {}
+
+    default_offsets = [(0.08, 0.06), (0.08, -0.06), (-0.08, 0.06), (-0.08, -0.06), (0.14, 0.06), (0.14, -0.06)]
+    for i, (x, y, txt, color, kw) in enumerate(plotted_points):
+        key = txt
+        if key in saved_positions:
+            tx, ty = saved_positions[key]
+        else:
+            dx, dy = default_offsets[i % len(default_offsets)]
+            tx = x + dx
+            ty = y + dy
+
+        ann = ax.annotate(txt, xy=(x, y), xytext=(tx, ty), textcoords='data',
+                          fontsize=kw.get('fontsize', 7), color=color,
+                          arrowprops=dict(arrowstyle='-', color='gray', lw=0.5),
+                          bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='none', alpha=0.8))
+        # make annotation draggable if interactive mode is requested
+        try:
+            ann.set_picker(True)
+            ann.draggable()
+        except Exception:
+            pass
+        annotations.append((txt, ann))
+
+    # Adjust y-limits to comfortably include all data points (with padding).
+    try:
+        y_vals = [y for (_x, y, _t, _c, _kw) in plotted_points]
+        if y_vals:
+            y_min = min(y_vals)
+            y_max = max(y_vals)
+            span = max(y_max - y_min, 1e-6)
+            pad = span * 0.08
+            ax.set_ylim(y_min - pad, y_max + pad)
+    except Exception:
+        pass
+
+    # If interactive_labels is True, show the figure to allow manual repositioning
+    # of annotations. After the window is closed save new positions if requested.
+    if interactive_labels:
+        print('\nInteractive label mode: drag labels to desired positions, then close the figure window to continue.')
+        plt.show()
+        # gather final positions
+        final_positions = {}
+        for key, ann in annotations:
+            try:
+                # get_position returns text position in data coords when textcoords='data'
+                pos = ann.get_position()
+                final_positions[key] = [float(pos[0]), float(pos[1])]
+            except Exception:
+                final_positions[key] = None
+        if save_label_positions_file:
+            try:
+                with open(save_label_positions_file, 'w') as f:
+                    json.dump(final_positions, f, indent=2)
+                print(f"Saved label positions to: {save_label_positions_file}")
+            except Exception as e:
+                print(f"Failed to save label positions: {e}")
 
     # Legend entries
     ax.scatter([], [], s=100, c='gray', edgecolors='black',
                linewidth=0.8, label='Fitted')
     if predicted_data:
-        ax.scatter([], [], s=120, facecolors='none', edgecolors='gray',
-                   linewidth=1.5, label='Predicted')
+        ax.scatter([], [], s=100, facecolors='none', edgecolors='gray',
+                   linewidth=0.8, label='Predicted')
     ax.scatter([], [], s=100, c='steelblue', edgecolors='black',
                linewidth=0.8, label='F$^-$ family')
     ax.scatter([], [], s=100, c='firebrick', edgecolors='black',
                linewidth=0.8, label='Cl$^-$ family')
 
-    ax.set_xlabel('$r_0$ (\\AA)')
+    ax.set_xlabel('$r_0$ ($\\AA$)')
     ax.set_ylabel('$\\alpha/\\omega_0$ ($\\times 10^{-14}$ s)')
-    ax.set_title('Multiphonon Anharmonicity vs. Equilibrium Separation')
-    ax.legend(loc='upper left', fontsize=8, framealpha=0.9, edgecolor='black')
+    # ax.set_title('Multiphonon Anharmonicity vs. Equilibrium Separation')
+    ax.legend(loc='upper left', fontsize=9, framealpha=0.9, edgecolor='black')
+    ax.set_xlim(1.0, 4.0)
+    ax.set_ylim(0.0, 16)
 
-    fig.savefig(os.path.join(output_dir, filename), bbox_inches='tight')
+    # Save both PNG and PDF versions
+    base_name = os.path.splitext(filename)[0]
+    pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
+    png_path = os.path.join(output_dir, f"{base_name}.png")
+    fig.savefig(pdf_path, bbox_inches='tight', dpi=1200)
+    fig.savefig(png_path, bbox_inches='tight', dpi=1200)
+    print(f"  Saved: {pdf_path} and {png_path}")
     return f_slope, f_intercept, f_r2, cl_intercept
 
 
@@ -1345,19 +1434,28 @@ def run_analysis(salt_name: str,
     fig1 = plot_absorption_spectrum(salt, wl, T_list, alpha_results,
                                     show_all_planck=True)
     fig1.savefig(os.path.join(output_dir,
-                              f"absorption_spectrum_{salt_name}.png"),
-                 bbox_inches='tight')
+                              f"absorption_spectrum_{salt_name}_png.png"),
+                 bbox_inches='tight', dpi=1200)
+    fig1.savefig(os.path.join(output_dir,
+                              f"absorption_spectrum_{salt_name}.pdf"),
+                 bbox_inches='tight', dpi=1200)
 
     fig2 = plot_refractive_index(salt, wl, T_list, n_results)
     fig2.savefig(os.path.join(output_dir,
-                              f"refractive_index_{salt_name}.png"),
-                 bbox_inches='tight')
+                              f"refractive_index_{salt_name}_png.png"),
+                 bbox_inches='tight', dpi=1200)
+    fig2.savefig(os.path.join(output_dir,
+                              f"refractive_index_{salt_name}.pdf"),
+                 bbox_inches='tight', dpi=1200)
 
     if len(T_kappa) > 1:
         fig3 = plot_planck_mean_vs_temperature(salt, T_kappa, kappa_P)
         fig3.savefig(os.path.join(output_dir,
-                                  f"planck_mean_{salt_name}.png"),
-                     bbox_inches='tight')
+                                  f"planck_mean_{salt_name}_png.png"),
+                     bbox_inches='tight', dpi=1200)
+        fig3.savefig(os.path.join(output_dir,
+                                  f"planck_mean_{salt_name}.pdf"),
+                     bbox_inches='tight', dpi=1200)
 
     return {
         'salt': salt,
@@ -1733,7 +1831,7 @@ def run_batch_analysis(
                                         show_all_planck=True)
         fig1.savefig(os.path.join(output_dir,
                                   f"absorption_spectrum_{name}_predicted.png"),
-                     bbox_inches='tight')
+                     bbox_inches='tight', dpi=1200)
 
         fig2 = plot_refractive_index(salt, wl, T_list, n_results)
         fig2.savefig(os.path.join(output_dir,
@@ -1744,7 +1842,7 @@ def run_batch_analysis(
             fig3 = plot_planck_mean_vs_temperature(salt, T_kappa, kappa_P)
             fig3.savefig(os.path.join(output_dir,
                                       f"planck_mean_{name}_predicted.png"),
-                         bbox_inches='tight')
+                         bbox_inches='tight', dpi=1200)
 
         batch_results[name + '_predicted'] = {
             'salt': salt,
@@ -1888,8 +1986,14 @@ if __name__ == "__main__":
             'n_temperatures': 50,
         },
         {
-            'name': 'FLiNa_UF4',
-            'wl_range': (0.15e-6, 160e-6),
+            'name': 'NaF-UF$_4$',
+            'wl_range': (0.15e-6, 80e-6),
+            'T_range': (900, 1600),
+            'n_temperatures': 50,
+        },
+        {
+            'name': 'FLiNa+UF$_4$',
+            'wl_range': (0.15e-6, 80e-6),
             'T_range': (737, 1600),
             'n_temperatures': 50,
         },
@@ -1900,8 +2004,14 @@ if __name__ == "__main__":
         #     'n_temperatures': 50,
         # },
         {
-            'name': 'NaCl-UCl3',
-            'wl_range': (0.15e-6, 160e-6),
+            'name': 'NaCl-UCl$_3$',
+            'wl_range': (0.15e-6, 80e-6),
+            'T_range': (829, 1600),
+            'n_temperatures': 50,
+        },
+        {
+            'name': 'NaCl-KCl',
+            'wl_range': (0.15e-6, 80e-6),
             'T_range': (829, 1600),
             'n_temperatures': 50,
         },

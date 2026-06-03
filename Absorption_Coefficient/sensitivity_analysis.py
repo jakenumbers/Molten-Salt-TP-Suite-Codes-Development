@@ -131,8 +131,8 @@ def run_sensitivity(salt_name='LiF', T=1173.0):
 
         title = f"Sensitivity: {name} (baseline={orig:.3g})"
         fig.suptitle(title)
-        outpath = os.path.join(OUTPUT_DIR, f'{salt.name}_sensitivity_{name}.pdf')
-        fig.savefig(outpath, dpi=200)
+        outpath = os.path.join(OUTPUT_DIR, f'{salt.name}_sensitivity_{name}.png')
+        fig.savefig(outpath, dpi=1200)
         print(f"Wrote: {outpath}")
 
     # Also make a small diagnostic plot showing baseline vs a few perturbed spectra
@@ -152,8 +152,8 @@ def run_sensitivity(salt_name='LiF', T=1173.0):
     ax.set_xlabel('Wavelength (um)')
     ax.set_ylabel('Absorption (m$^{-1}$)')
     ax.legend()
-    outpath = os.path.join(OUTPUT_DIR, f'{salt.name}_spectra_examples.pdf')
-    fig.savefig(outpath, dpi=200)
+    outpath = os.path.join(OUTPUT_DIR, f'{salt.name}_spectra_examples.png')
+    fig.savefig(outpath, dpi=1200)
     print(f"Wrote: {outpath}")
 
 
@@ -247,8 +247,8 @@ if __name__ == '__main__':
         ax.set_ylabel('Percent change in $\kappa_P$ (%)')
         #ax.set_title(f"Planck-mean percent change for +{int(perturb*100)}% parameter perturbation ({salt_name})")
         ax.legend(fontsize=8)
-        outpath = os.path.join(OUTPUT_DIR, f'{salt_name}_planck_pct_change_plus{int(perturb*100)}.pdf')
-        fig.savefig(outpath, dpi=200)
+        outpath = os.path.join(OUTPUT_DIR, f'{salt_name}_planck_pct_change_plus{int(perturb*100)}.png')
+        fig.savefig(outpath, dpi=1200)
         print(f"Wrote: {outpath}")
 
     # (defer running until we loop over selected salts below)
@@ -346,8 +346,8 @@ if __name__ == '__main__':
         ax.set_yscale('log')
         #ax.set_title(f"Planck-mean $\kappa_P$ for +{int(perturb*100)}% parameter perturbation ({salt_name})")
         ax.legend(fontsize=9, ncol=2)
-        outpath = os.path.join(OUTPUT_DIR, f'{salt_name}_planck_absolute_plus{int(perturb*100)}.pdf')
-        fig.savefig(outpath, dpi=200)
+        outpath = os.path.join(OUTPUT_DIR, f'{salt_name}_planck_absolute_plus{int(perturb*100)}.png')
+        fig.savefig(outpath, dpi=1200)
         print(f"Wrote: {outpath}")
 
     # (defer running until we loop over selected salts below)
@@ -440,8 +440,8 @@ if __name__ == '__main__':
         ax.set_ylabel('Absorption Coefficient $\kappa_\lambda$ (m$^{-1}$)')
         #ax.set_title(f'Absorption spectra (+{int(perturb*100)}% perturbations) at {T:.0f}K')
         ax.legend(fontsize=9, ncol=2)
-        outpath = os.path.join(OUTPUT_DIR, f'{salt.name}_absorption_spectra_plus{int(perturb*100)}.pdf')
-        fig.savefig(outpath, dpi=200)
+        outpath = os.path.join(OUTPUT_DIR, f'{salt.name}_absorption_spectra_plus{int(perturb*100)}.png')
+        fig.savefig(outpath, dpi=1200)
         print(f"Wrote: {outpath}")
 
     # Run analyses for multiple salts

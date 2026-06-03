@@ -53,6 +53,101 @@ from typing import Dict, List, Tuple, Optional
 from abs_model_claude_V2 import compute_alpha_total, planck_spectral_radiance
 
 
+def place_legend_avoiding_points(ax, fontsize=9, candidate_locs=None, padding_px=2, first_label: Optional[str] = None):
+    """
+    Place the legend at the first candidate location that does not overlap
+    any plotted data points. Falls back to 'upper right' if all overlap.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+    fontsize : int
+    candidate_locs : list of str
+    padding_px : int - extra pixel padding around legend bbox to treat as occupied
+    """
+    if candidate_locs is None:
+        candidate_locs = [
+            'upper right', 'upper left', 'lower left', 'lower right',
+            'center left', 'center right', 'upper center', 'lower center', 'center'
+        ]
+
+    fig = ax.figure
+    # Ensure renderer exists
+    fig.canvas.draw()
+    try:
+        renderer = fig.canvas.get_renderer()
+    except Exception:
+        renderer = None
+
+    # Collect screen-space positions of plotted points
+    pts = []
+    # Lines
+    for line in ax.get_lines():
+        xdata = np.asarray(line.get_xdata())
+        ydata = np.asarray(line.get_ydata())
+        if xdata.size and ydata.size:
+            for x, y in zip(xdata, ydata):
+                pts.append(ax.transData.transform((x, y)))
+    # Collections (scatter)
+    for coll in ax.collections:
+        offsets = getattr(coll, 'get_offsets', lambda: None)()
+        if offsets is not None:
+            for xy in offsets:
+                try:
+                    pts.append(ax.transData.transform((xy[0], xy[1])))
+                except Exception:
+                    continue
+
+    # Prepare handles/labels and optionally reorder so first_label appears first
+    handles, labels = ax.get_legend_handles_labels()
+    if first_label and first_label in labels:
+        idx = labels.index(first_label)
+        # move the chosen entry to the front
+        handles = [handles[idx]] + handles[:idx] + handles[idx+1:]
+        labels  = [labels[idx]]  + labels[:idx]  + labels[idx+1:]
+
+    # Try candidate locations
+    for loc in candidate_locs:
+        # create legend using the prepared handles/labels
+        try:
+            leg = ax.legend(handles, labels, loc=loc, fontsize=fontsize, framealpha=0.9)
+        except Exception:
+            leg = ax.legend(loc=loc, fontsize=fontsize, framealpha=0.9)
+        fig.canvas.draw()
+        if renderer is None:
+            try:
+                renderer = fig.canvas.get_renderer()
+            except Exception:
+                renderer = None
+
+        try:
+            bbox = leg.get_window_extent(renderer=renderer).expanded(1.0 + padding_px/100.0, 1.0 + padding_px/100.0)
+        except Exception:
+            bbox = None
+
+        overlap = False
+        if bbox is not None:
+            for (px, py) in pts:
+                if bbox.contains(px, py):
+                    overlap = True
+                    break
+
+        if not overlap:
+            return leg
+        # remove and try next
+        try:
+            leg.remove()
+        except Exception:
+            pass
+
+    # Fallback: place upper right with semi-transparent box
+    try:
+        return ax.legend(handles, labels, loc='upper right', fontsize=fontsize, framealpha=0.9)
+    except Exception:
+        return ax.legend(loc='upper right', fontsize=fontsize, framealpha=0.9)
+
+
+
 # =============================================================================
 # 0. PLOT FORMATTING
 # =============================================================================
@@ -63,7 +158,7 @@ plt.rcParams.update({
     "axes.labelsize":       11,
     "xtick.labelsize":      10,
     "ytick.labelsize":      10,
-    "legend.fontsize":       8,
+    "legend.fontsize":       9,
     "axes.spines.top":      True,
     "axes.spines.right":    True,
     "xtick.direction":      "in",
@@ -115,10 +210,33 @@ SALT_CASES: Dict[str, dict] = {
         'k_conduction_ref': 0.712,
         'k_conduction_slope': -0.00018,
         'L_lfa': 0.002,
-        'published_k': [],
+        'published_k': [
+            {
+                'T_K': [1169.44, 1171.52, 1274.43, 1294.18, 1354.47, 1392.93, 1403.33, 1401.25, 1440.75, 1438.67],
+                'k': [0.51, 0.49, 0.49, 0.47, 0.46, 0.46, 0.46, 0.44, 0.45, 0.42],
+                'label': 'Nagasaka (1992, Forced Rayleigh Scattering)',
+                'marker': 's', 'color': 'blue',
+            }
+        ],
     },
-    'NaCl-UCl3': {
-        # 63NaCl - 37UCl3 mixture (matching Salt_RHT_Properties.csv 'NaCl-UCl3')
+'NaCl-KCl': {
+        'rho': (2130.0, -0.568),
+        'cp': 1060.0,
+        'T_fus': 930.8,
+        'k_conduction_ref': 0.299,
+        'k_conduction_slope': -0.00018,
+        'L_lfa': 0.002,
+        'published_k': [
+            {
+                'T_K': [933.4975369, 950.6685433, 971.4989444, 988.9514426, 1009.500352],
+                'k': [0.516580311, 0.400222058, 0.524130274, 0.423760178, 0.489489267],
+                'label': 'Ruth (2024, Needle Probe)',
+                'marker': 's', 'color': 'blue',
+            },
+        ],
+    },
+    'NaCl-UCl$_3$': {
+        # 63NaCl - 37UCl3 mixture (matching Salt_RHT_Properties.csv 'NaCl-UCl$_3$')
         'rho': (4220.0, -0.00103),
         'cp': 590.0,                    # Rose, 2023
         'T_fus': 829.0,
@@ -148,7 +266,14 @@ SALT_CASES: Dict[str, dict] = {
         'k_conduction_ref': 1.88,
         'k_conduction_slope': -0.000399,
         'L_lfa': 0.002,
-        'published_k': [],
+        'published_k': [
+            {
+                'T_K': [1150.52, 1151.04, 1168.75, 1193.23, 1224.48, 1207.29, 1239.06, 1275.52, 1314.06, 1371.88],
+                'k': [1.39, 1.24, 1.34, 1.05, 1.31, 1.45, 1.47, 1.44, 1.18, 1.24],
+                'label': 'Golyshev (1992, Concentric Cylinders)',
+                'marker': 's', 'color': 'blue',
+            }
+        ],
     },
 }
 
@@ -413,7 +538,7 @@ def case_1_conductivity_decomposition(
 
     # Conduction conduction baseline
     ax.plot(T, k_cond, 'b--', linewidth=1.5,
-            label='$k_{\\mathrm{conduction}}(T)$ (Gheribi model)')
+            label='$k_{\\mathrm{cond}}(T)$')
 
     # Radiative contribution
     ax.plot(T, k_rd, 'r:', linewidth=1.5,
@@ -422,7 +547,7 @@ def case_1_conductivity_decomposition(
 
     # Total = what LFA measures
     ax.plot(T, k_total, 'k-', linewidth=2.0,
-            label='$k_{\\mathrm{total}}$ = $k_{\\mathrm{conduction}}$ + '
+            label='$k_{\\mathrm{total}}$ = $k_{\\mathrm{cond}}$ + '
                   '$k_{\\mathrm{rad}}$')
 
     # Shading for radiative contribution
@@ -436,30 +561,46 @@ def case_1_conductivity_decomposition(
     default_colors = ['green', 'purple', 'orange', 'brown', 'teal', 'gray']
     for i, pub in enumerate(published):
         mk = pub.get('marker', default_markers[i % len(default_markers)])
-        cl = pub.get('color', default_colors[i % len(default_colors)])
-        ax.scatter(pub['T_K'], pub['k'], marker=mk, color=cl,
-                   s=50, edgecolors='black', linewidth=0.5,
-                   zorder=5, label=pub.get('label', f'Published {i+1}'))
+        # Avoid using blue or red for published-data markers so they don't
+        # get confused with the model spectrum lines. Use default palette
+        # when authors specified 'blue' or 'red'. Make markers translucent.
+        supplied_clr = pub.get('color', None)
+        if supplied_clr is None:
+            cl = default_colors[i % len(default_colors)]
+        else:
+            sc = str(supplied_clr).lower()
+            if sc in ('blue', 'b', '#0000ff', 'red', 'r', '#ff0000'):
+                cl = default_colors[i % len(default_colors)]
+            else:
+                cl = supplied_clr
 
-    # Annotations
-    ax.text(0.97, 0.97,
-            f'{salt_name}\n'
-            f'L = {L*1e3:.0f} mm\n'
-            f'$\\tau$ = {tau_mid:.1f}–{tau_max:.1f}',
-            transform=ax.transAxes, fontsize=9,
-            va='top', ha='right',
-            bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
-                      edgecolor='gray', alpha=0.8))
+        ax.scatter(pub['T_K'], pub['k'], marker=mk, color=cl,
+                   s=56, edgecolors='black', linewidth=0.5,
+                   zorder=5, alpha=0.65,
+                   label=pub.get('label', f'Published {i+1}'))
+
+    # Add summary info into legend instead of as an axes text box so it
+    # remains inside the plot but does not overlap datapoints.
+    info_label = (f"{salt_name} — L = {L*1e3:.0f} mm, "
+                  f"$\\tau$ = {tau_mid:.1f}\u2013{tau_max:.1f}")
+    # Create an invisible handle with the info label for the legend
+    ax.plot([], [], ' ', label=info_label)
+
+    # Attach the info label to the Figure so callers can access it later
+    fig.info_label = info_label
 
     ax.set_xlabel('Temperature (K)')
-    ax.set_ylabel('Thermal Conductivity (W/m$\\cdot$K)')
-    ax.set_title('Case 1: LFA Thermal Conductivity Decomposition')
-    ax.legend(loc='upper left', fontsize=7, framealpha=0.9)
+    ax.set_ylabel('Thermal Conductivity (W m$^{-1}$ K$^{-1}$)')
+     #ax.set_title('Case 1: LFA Thermal Conductivity Decomposition')
+    place_legend_avoiding_points(ax, fontsize=9, first_label=info_label)
 
-    filepath = os.path.join(output_dir,
+    pdf_path = os.path.join(output_dir,
                             f'Case1_k_decomposition_{salt_name}.pdf')
-    fig.savefig(filepath, dpi=300, bbox_inches='tight')
-    print(f"  Saved: {filepath}")
+    png_path = os.path.join(output_dir,
+                            f'Case1_k_decomposition_{salt_name}.png')
+    fig.savefig(pdf_path, dpi=1200, bbox_inches='tight')
+    fig.savefig(png_path, dpi=1200, bbox_inches='tight')
+    print(f"  Saved: {pdf_path} and {png_path}")
     return fig
 
 
@@ -512,7 +653,7 @@ def case_2_thickness_sensitivity(
 
     # Conduction baseline
     ax.plot(T, k_cond, 'k:', linewidth=1.5, alpha=0.7,
-            label='$k_{\\mathrm{conduction}}$ only')
+            label='$k_{\\mathrm{cond}}$ only')
 
     # Reference kappa at midpoint for tau annotation
     i_mid = len(T) // 2
@@ -530,25 +671,23 @@ def case_2_thickness_sensitivity(
         ax.plot(T, k_total, color=color, linestyle=ls,
                 linewidth=2.0, label=label)
 
-    # Annotations
-    ax.text(0.97, 0.97,
-            f'{salt_name}\n'
-            f'$\\kappa_P$ = {kappa[i_mid]:.0f} m$^{{-1}}$ '
-            f'at {T[i_mid]:.0f} K',
-            transform=ax.transAxes, fontsize=9,
-            va='top', ha='right',
-            bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
-                      edgecolor='gray', alpha=0.8))
+    # Add summary info into the legend rather than an axes text box
+    info_label = (f"{salt_name} — $\\kappa_P$ = {kappa[i_mid]:.0f} m$^{{-1}}$ "
+                  f"at {T[i_mid]:.0f} K")
+    ax.plot([], [], ' ', label=info_label)
 
     ax.set_xlabel('Temperature (K)')
-    ax.set_ylabel('Apparent Thermal Conductivity (W/m$\\cdot$K)')
-    ax.set_title('Case 2: LFA Sensitivity to Sample Thickness')
-    ax.legend(loc='upper left', fontsize=8, framealpha=0.9)
+    ax.set_ylabel('Apparent Thermal Conductivity (W m$^{-1}$ K$^{-1}$)')
+     #ax.set_title('Case 2: LFA Sensitivity to Sample Thickness')
+    place_legend_avoiding_points(ax, fontsize=9, first_label=info_label)
 
-    filepath = os.path.join(output_dir,
+    pdf_path = os.path.join(output_dir,
                             f'Case2_thickness_{salt_name}.pdf')
-    fig.savefig(filepath, dpi=300, bbox_inches='tight')
-    print(f"  Saved: {filepath}")
+    png_path = os.path.join(output_dir,
+                            f'Case2_thickness_{salt_name}.png')
+    fig.savefig(pdf_path, dpi=1200, bbox_inches='tight')
+    fig.savefig(png_path, dpi=1200, bbox_inches='tight')
+    print(f"  Saved: {pdf_path} and {png_path}")
     return fig
 
 
@@ -598,7 +737,7 @@ if __name__ == '__main__':
     os.makedirs(figs_dir, exist_ok=True)
 
     # ---- Select salts to analyze ----
-    SALTS_TO_ANALYZE = ['FLiNaK', 'NaCl', 'NaCl-UCl3']
+    SALTS_TO_ANALYZE = ['FLiNaK', 'NaCl', 'LiF', 'NaCl-UCl$_3$', 'NaCl-KCl']
 
     for salt_name in SALTS_TO_ANALYZE:
         print(f"\n{'='*60}")
@@ -636,9 +775,10 @@ if __name__ == '__main__':
                                                          n_spec=n_spec)
                     # annotate saved figure by adding a text note
                     ax = fig1.axes[0]
-                    ax.plot([], [], ' ', label=f'Spectral Deissler $k_{{rad}}$ = {k_rad_spec:.3f} W/mK at {T_mid:.0f} K')
-                    ax.legend(loc='upper left', fontsize=7, framealpha=0.9)
-                    fig1.savefig(os.path.join(figs_dir, f'Case1_k_decomposition_{salt_name}_spectral.pdf'), dpi=300, bbox_inches='tight')
+                    # ax.plot([], [], ' ', label=f'Spectral Deissler $k_{{rad}}$ = {k_rad_spec:.3f} W/mK at {T_mid:.0f} K')
+                    place_legend_avoiding_points(ax, fontsize=9, first_label=getattr(fig1, 'info_label', None))
+                    fig1.savefig(os.path.join(figs_dir, f'Case1_k_decomposition_{salt_name}_spectral.pdf'), dpi=1200, bbox_inches='tight')
+                    fig1.savefig(os.path.join(figs_dir, f'Case1_k_decomposition_{salt_name}_spectral.png'), dpi=1200, bbox_inches='tight')
                     print(f"  Saved spectral comparison: {os.path.join(figs_dir, f'Case1_k_decomposition_{salt_name}_spectral.pdf')}")
             except Exception as e:
                 print(f"  Spectral Deissler failed: {e}")
