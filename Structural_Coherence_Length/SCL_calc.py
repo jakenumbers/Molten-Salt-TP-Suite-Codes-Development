@@ -13,6 +13,16 @@ import csv
 # 1. Helper Functions
 # ==========================================
 
+def get_scl_dir():
+    """Return the Structural_Coherence_Length directory, whether running from it or its parent."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if os.path.basename(script_dir) == 'Structural_Coherence_Length':
+        return script_dir
+    candidate = os.path.join(script_dir, 'Structural_Coherence_Length')
+    if os.path.isdir(candidate):
+        return candidate
+    return script_dir  # fallback
+
 def standardize_ion_pair(ion_pair):
     """Standardizes ion pair strings (e.g., 'LiCl-KCl' -> 'Cl-Li')."""
     if not isinstance(ion_pair, str):
@@ -58,6 +68,30 @@ def format_composition_with_subscripts(composition_str):
     parts = composition_str.split('-')
     formatted = [re.sub(r'([A-Z][a-z]?)(\d*)', replace_with_subscript, p) for p in parts]
     return '-'.join(formatted)
+
+def estimate_fwhm(x, y):
+    """Estimate FWHM of the first peak in g(r).
+    
+    Uses half-maximum interpolation on the raw data. Robust to moderate noise.
+    
+    Returns:
+        fwhm: Full width at half maximum in same units as x, or None if no peak found.
+    """
+    peaks, _ = find_peaks(y, prominence=0.05 * np.max(y) if np.max(y) > 0 else 0, distance=10)
+    if len(peaks) == 0:
+        return None
+    p_idx = peaks[0]
+    half_max = y[p_idx] / 2.0
+
+    # Left side: last point below half_max before peak
+    left = np.where(y[:p_idx] <= half_max)[0]
+    x_left = x[left[-1]] if len(left) > 0 else x[0]
+
+    # Right side: first point below half_max after peak
+    right = np.where(y[p_idx:] <= half_max)[0]
+    x_right = x[p_idx + right[0]] if len(right) > 0 else x[-1]
+
+    return x_right - x_left
 
 def parse_composition(comp_str):
     """Parses composition string into fractions and ion counts."""
@@ -169,13 +203,16 @@ class IonPairData:
         return peak_pt, min_pt
 
 class MoltenSaltPDF:
-    def __init__(self, pdf_file, comp_str, source, temp, gamma_bc, apply_savgol=False, savgol_window_length=11, savgol_polyorder=3):
+    def __init__(self, pdf_file, comp_str, source, temp, gamma_bc, apply_savgol=False, savgol_window_length=None, savgol_polyorder=None):
         self.original_comp_str = comp_str
         self.source = source
         self.temp = temp
         self.gamma_bc = gamma_bc
         self.apply_savgol = apply_savgol
-        self.savgol_params = (savgol_window_length, savgol_polyorder)
+
+        # Store user overrides (None means auto-determine from FWHM)
+        self.savgol_user_window = savgol_window_length
+        self.savgol_user_polyorder = savgol_polyorder
         
         # Parse Composition
         self.fractions, self.ion_counts, self.comp = parse_composition(comp_str)
@@ -216,12 +253,74 @@ class MoltenSaltPDF:
         total_w = sum(weights.values())
         return {k: v/total_w for k, v in weights.items()}
 
+    def _determine_savgol_params(self, x, y):
+        """Determine Savgol filter parameters adaptively from FWHM, or use user overrides.
+        
+        Strategy:
+            - If user provided both window_length and polyorder, use those.
+            - Otherwise, estimate FWHM of first peak and set window = FWHM / 1.5 (in grid points).
+            - User-provided values override individual auto-determined values.
+        
+        Returns:
+            (window_length, polyorder) or None if smoothing should be skipped.
+        """
+        # Start with auto-determined values
+        auto_wl = None
+        auto_po = 3  # Default polyorder
+
+        fwhm = estimate_fwhm(x, y)
+        if fwhm is not None and len(x) > 1:
+            dx = x[1] - x[0]
+            if dx > 0:
+                auto_wl = int(round(fwhm / (1.5 * dx)))
+                auto_wl = max(auto_wl, 5)
+                if auto_wl % 2 == 0:
+                    auto_wl += 1
+                print(f"    Auto Savgol: FWHM={fwhm:.4f} A, dx={dx:.5f} A -> window_length={auto_wl}")
+        
+        # Apply user overrides where provided
+        wl = self.savgol_user_window if self.savgol_user_window is not None else auto_wl
+        po = self.savgol_user_polyorder if self.savgol_user_polyorder is not None else auto_po
+
+        # If we still have no window length, skip smoothing
+        if wl is None:
+            print(f"    Savgol skipped: could not determine window length (no peak found)")
+            return None
+
+        # Validate parameters
+        if wl < 5:
+            wl = 5
+        if wl % 2 == 0:
+            wl += 1
+        if po >= wl:
+            po = wl - 1
+        po = max(po, 1)
+
+        if self.savgol_user_window is not None or self.savgol_user_polyorder is not None:
+            print(f"    Savgol params (user override): window_length={wl}, polyorder={po}")
+        else:
+            print(f"    Savgol params (auto): window_length={wl}, polyorder={po}")
+
+        return (wl, po)
+
     def _load_pdf(self, filename):
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        path = os.path.join(script_dir, "PDF_CSV", filename)
-        
-        if not os.path.exists(path):
-            print(f"Error: File {path} not found.")
+        repo_root = os.path.abspath(os.path.join(script_dir, os.pardir))
+        path_candidates = [
+            os.path.join(repo_root, "PDF_Analysis", "PDF_CSV", filename),
+            os.path.join(script_dir, "PDF_CSV", filename)
+        ]
+
+        path = None
+        for candidate in path_candidates:
+            if os.path.exists(candidate):
+                path = candidate
+                break
+
+        if path is None:
+            print(f"Error: File {filename} not found in expected locations:")
+            for candidate in path_candidates:
+                print(f"  - {candidate}")
             return {}
 
         df = pd.read_csv(path, header=None)
@@ -247,15 +346,17 @@ class MoltenSaltPDF:
                 x = np.concatenate([x_ext[:-1], x])
                 y = np.concatenate([np.zeros(len(x_ext)-1), y])
             
-            # Savgol Smoothing
-            if self.apply_savgol and len(y) > self.savgol_params[0]:
-                wl, po = self.savgol_params
-                if wl % 2 == 0: wl += 1
-                # Only smooth non-zero parts to keep r=0 clean
-                nonzero_idx = np.where(y > 0.001)[0]
-                if len(nonzero_idx) > wl:
-                    start = nonzero_idx[0]
-                    y[start:] = savgol_filter(y[start:], window_length=wl, polyorder=po,mode='nearest')
+            # Adaptive Savgol Smoothing (per ion pair)
+            if self.apply_savgol and len(y) > 5:
+                print(f"  Savgol for {name}:")
+                params = self._determine_savgol_params(x, y)
+                if params is not None:
+                    wl, po = params
+                    nonzero_idx = np.where(y > 0.001)[0]
+                    if len(nonzero_idx) > wl:
+                        start = nonzero_idx[0]
+                        y[start:] = savgol_filter(y[start:], window_length=wl, polyorder=po, mode='nearest')
+
             # Ensure PDF doesn't go below zero by clipping negative values
             y = np.maximum(y, 0)
 
@@ -280,12 +381,12 @@ class MoltenSaltPDF:
         """
         Calculate Potential of Mean Force (PMF) and bond strength constant for a cation-anion pair.
         
-        PMF: V(r) = -k_B*T*ln(g(r))
+        PMF: V(r) = -k_B*T*ln(g(r))  using the UNWEIGHTED g(r)
         Bond strength constant: k = d²V/dr² at first peak position
         
         Returns:
             pmf_values: array of PMF values on the grid
-            bond_strength: second derivative of PMF at peak position
+            bond_strength: second derivative of PMF at peak position (kJ/mol/Å²)
             peak_position: position of the first peak
         """
         if ion_pair_name not in self.ion_pairs:
@@ -295,8 +396,9 @@ class MoltenSaltPDF:
         if pair.type != 'ca':
             print(f"Warning: {ion_pair_name} is not a cation-anion pair")
         
-        # Get g(r) values on the common grid
-        g_values = self.weighted_splines[ion_pair_name](self.x_grid)
+        # Use UNWEIGHTED g(r) for PMF — the potential of mean force is an
+        # intrinsic pair property, not scaled by composition weights.
+        g_values = pair.spline(self.x_grid)
         
         # Avoid log(0) by setting minimum value
         g_values_safe = np.maximum(g_values, 1e-10)
@@ -313,7 +415,6 @@ class MoltenSaltPDF:
             return pmf_values, None, None
         
         # Calculate second derivative using finite differences
-        # Use gradient twice for second derivative
         dx = self.x_grid[1] - self.x_grid[0]
         first_derivative = np.gradient(pmf_values, dx)
         second_derivative = np.gradient(first_derivative, dx)
@@ -362,25 +463,39 @@ class MoltenSaltPDF:
 
     def calculate_fundamental_frequency(self, ion_pair_name, bond_strength):
         """
-        Calculate fundamental frequency ω = √(k/μ) where k is bond strength constant.
+        Calculate fundamental frequency ω₀ = √(k/μ) where k is bond strength constant.
+        
+        Units:
+            bond_strength: kJ/(mol·Å²)
+            reduced_mass: kg/mol
+            → ω₀ returned in rad/ps
         
         Returns:
-            omega: fundamental frequency in rad/s
+            omega: fundamental frequency in rad/ps
         """
         reduced_mass = self.calculate_reduced_mass(ion_pair_name)
         
         if reduced_mass is None or bond_strength is None:
             return None
         
-        # Convert bond strength from kJ/mol/Å² to J/mol/m²
-        # 1 kJ = 1000 J, 1 Å = 1e-10 m
-        k_si = bond_strength * 1000 / (1e-20)  # J/mol/m²
+        if bond_strength <= 0:
+            print(f"  Warning: Non-positive bond strength ({bond_strength:.4f}) for {ion_pair_name}, ω₀ undefined")
+            return None
         
-        # Convert to J per molecule (divide by Avogadro's number)
-        k_molecule = k_si / 6.02214076e23  # J/m²
+        # Convert bond strength from kJ/(mol·Å²) to J/(mol·m²)
+        # 1 kJ = 1000 J, 1 Å = 1e-10 m → 1 Å² = 1e-20 m²
+        k_si = bond_strength * 1000 / (1e-20)  # J/(mol·m²)
         
-        # Calculate ω = √(k/μ)
-        omega = np.sqrt(k_molecule / reduced_mass)
+        # Convert to per-molecule quantities (divide by Avogadro's number)
+        N_A = 6.02214076e23
+        k_molecule = k_si / N_A       # J/m² per molecule (= N/m)
+        mu_molecule = reduced_mass / N_A  # kg per molecule
+        
+        # ω₀ = √(k/μ) in rad/s
+        omega = np.sqrt(k_molecule / mu_molecule)
+        
+        # Convert rad/s to rad/ps (1 ps = 1e-12 s)
+        omega = omega * 1e-12  # rad/ps
         
         return omega
 
@@ -525,6 +640,9 @@ class MoltenSaltPDF:
             reduced_mass = self.calculate_reduced_mass(name)
             fundamental_frequency = self.calculate_fundamental_frequency(name, bond_strength)
 
+            if fundamental_frequency is not None:
+                print(f"  ω₀: {fundamental_frequency:.4f} rad/ps (k={bond_strength:.4f} kJ/mol/Å², μ={reduced_mass*1000:.4f} g/mol)")
+
             # Store Results
             self.ion_pair_results[name] = {
                 'scl': scl_pair,
@@ -536,7 +654,7 @@ class MoltenSaltPDF:
                 'cc_peak_y': self.ion_pairs[cc_name].peak[1] if has_cc else None,
                 'pmf_at_peak': pmf_values[np.argmin(np.abs(self.x_grid - pair.peak[0]))] if bond_strength is not None else None,
                 'bond_strength': bond_strength,
-                'reduced_mass': reduced_mass * 1000,  # Convert back to g/mol for display
+                'reduced_mass': reduced_mass * 1000 if reduced_mass is not None else None,  # Convert back to g/mol for display
                 'fundamental_frequency': fundamental_frequency,
             }
             
@@ -556,7 +674,7 @@ class MoltenSaltPDF:
         self._save_csv_results()
         
     def _save_csv_results(self):
-        filename = 'SCL_results.csv'
+        filename = os.path.join(get_scl_dir(), 'SCL_results.csv')
         file_exists = os.path.isfile(filename)
         
         base_headers = ['Composition', 'Source', 'Temperature (K)', 'Average SCL (A)']
@@ -574,7 +692,7 @@ class MoltenSaltPDF:
                 f'Pair {i} Min X (A)', f'Pair {i} Min Y', 
                 f'Pair {i} CC Peak X (A)', f'Pair {i} CC Peak Y',
                 f'Pair {i} PMF at Peak (kJ/mol)', f'Pair {i} Bond Strength (kJ/mol/A²)',
-                f'Pair {i} Reduced Mass (g/mol)', f'Pair {i} Fundamental Frequency (rad/s)'
+                f'Pair {i} Reduced Mass (g/mol)', f'Pair {i} Fundamental Frequency (rad/ps)'
             ])
             
             if i <= len(sorted_pairs):
@@ -613,6 +731,7 @@ class MoltenSaltPDF:
             writer.writerow(data)
 
     def save_plot_data(self, folder='SCL_plot_data'):
+        folder = os.path.join(get_scl_dir(), folder)
         os.makedirs(folder, exist_ok=True)
         safe_source = ''.join(c if c.isalnum() else '_' for c in self.source.split(',')[0].strip())
         filename = os.path.join(folder, f'{self.comp.replace("-", "_")}_{safe_source}_plot_data.csv')
@@ -635,11 +754,9 @@ class MoltenSaltPDF:
         print(f"Plot data saved to {filename}")
 
 
-    def plot_pdf(self, show_plot=True, save_plot=True, output_dir='SCL_plots'):
-
-        # if not hasattr(self, 'SCL_plot_data') or not self.plot_data:
-        #     print(f"No plot data available for {self.comp}")
-        #     return
+    def plot_pdf(self, show_plot=True, save_plot=True, output_dir=None):
+        if output_dir is None:
+            output_dir = os.path.join(get_scl_dir(), 'SCL_plots')
             
         # Create output directory if it doesn't exist
         if save_plot:
@@ -762,10 +879,6 @@ class MoltenSaltPDF:
 
         current_date = datetime.now().strftime("%Y%m%d")
         save_title = f'PDF_{self.comp}_{current_date}.png'
-        
-        folder_name = "scl_plots"
-        os.makedirs(os.path.join(os.getcwd(), folder_name), exist_ok=True)
-        file_path = os.path.join(os.getcwd(), folder_name, save_title)
 
         plt.xlabel('r [Å]')
         plt.ylabel('g(r)')
@@ -889,8 +1002,17 @@ class PDFAnalyzer:
         self.save_plot_data = save_plot_data
         self.show_plot = show_plot
 
-    def add_molten_salt(self, *args, **kwargs):
-        self.salts.append(MoltenSaltPDF(*args, **kwargs))
+    def add_molten_salt(self, pdf_file, comp_str, source, temp, gamma_bc, apply_savgol=False, savgol_window_length=None, savgol_polyorder=None):
+        self.salts.append(MoltenSaltPDF(
+            pdf_file,
+            comp_str,
+            source,
+            temp,
+            gamma_bc,
+            apply_savgol=apply_savgol,
+            savgol_window_length=savgol_window_length,
+            savgol_polyorder=savgol_polyorder
+        ))
 
     def analyze_all(self):
         for salt in self.salts:
@@ -916,42 +1038,42 @@ def main():
     # The below entries will currently analyze all salts avaialable
 
     # Unary Salts
-    analyzer.add_molten_salt('LiF_Walz_2019_1121.0_PIM.csv',"1.0LiF",'Walz, 2019', 1121, 3.28553)
-    analyzer.add_molten_salt('NaF_Walz_2019_1266.0_PIM.csv',"1.0NaF",'Walz, 2019', 1266, 5.22361)
-    analyzer.add_molten_salt('KF_Walz_2019_1131.0_PIM.csv',"1.0KF",'Walz, 2019', 1131, 4.63533)
-    analyzer.add_molten_salt('LiCl_Walz_2019_878.0_PIM.csv',"1.0LiCl",'Walz, 2019', 878, 4.10511)
-    analyzer.add_molten_salt('NaCl_Lu_2021_1200.0_PIM.csv', "1.0NaCl", 'Lu, 2021', 1200, 4.48028)
-    analyzer.add_molten_salt('KCl_Walz_2019_1043.0_PIM.csv',"1.0KCl",'Walz, 2019', 1043, 4.47675)
-    analyzer.add_molten_salt('MgCl2_Roy_2021_1073.0_AP.csv',"1.0MgCl2",'Roy, 2021', 1073, 4.76796)
-    analyzer.add_molten_salt('CaCl2_Bu_2021_1100.0_AP.csv',"1.0CaCl2",'Bu, 2021', 1100, 7.72598)
-    analyzer.add_molten_salt('SrCl2_McGreevy_1987_1198.0_Exp.csv',"1.0SrCl2",'McGreevy, 1987', 1198, 0)
+    analyzer.add_molten_salt('LiF_Walz_2019_1121.0_PIM.csv',"1.0LiF",'Walz, 2019', 1121, 3.28553, apply_savgol=True)
+    analyzer.add_molten_salt('NaF_Walz_2019_1266.0_PIM.csv',"1.0NaF",'Walz, 2019', 1266, 5.22361, apply_savgol=True)
+    analyzer.add_molten_salt('KF_Walz_2019_1131.0_PIM.csv',"1.0KF",'Walz, 2019', 1131, 4.63533, apply_savgol=True)
+    analyzer.add_molten_salt('LiCl_Walz_2019_878.0_PIM.csv',"1.0LiCl",'Walz, 2019', 878, 4.10511, apply_savgol=True)
+    analyzer.add_molten_salt('NaCl_Lu_2021_1200.0_PIM.csv', "1.0NaCl", 'Lu, 2021', 1200, 4.48028, apply_savgol=True)
+    analyzer.add_molten_salt('KCl_Walz_2019_1043.0_PIM.csv',"1.0KCl",'Walz, 2019', 1043, 4.47675, apply_savgol=True)
+    analyzer.add_molten_salt('MgCl2_Roy_2021_1073.0_AP.csv',"1.0MgCl2",'Roy, 2021', 1073, 4.76796, apply_savgol=True)
+    analyzer.add_molten_salt('CaCl2_Bu_2021_1100.0_AP.csv',"1.0CaCl2",'Bu, 2021', 1100, 7.72598, apply_savgol=True)
+    analyzer.add_molten_salt('SrCl2_McGreevy_1987_1198.0_Exp.csv',"1.0SrCl2",'McGreevy, 1987', 1198, 0, apply_savgol=True)
     
     # Mixtures
-    analyzer.add_molten_salt('0.6LiF-0.4NaF_Grizzi_2024_1473.0_AP.csv',"0.6LiF-0.4NaF",'Grizzi, 2024', 1473, 2.63857)
-    analyzer.add_molten_salt('0.5LiF-0.5BeF2_Sun_2024_900.0_AP.csv',"0.5LiF-0.5BeF2",'Sun, 2024', 900, 0)
-    analyzer.add_molten_salt('0.66LiF-0.34BeF2_Fayfar_2024_973.0_AP.csv',"0.66LiF-0.34BeF2",'Fayfar, 2024', 973, 1.90187)
-    analyzer.add_molten_salt('0.5LiCl-0.5KCl_Jiang_2016_727.0_RIM.csv', "0.5LiCl-0.5KCl", 'Jiang, 2016', 727, 0)
-    analyzer.add_molten_salt('0.637LiCl-0.363KCl_Jiang_2016_750.0_RIM.csv',"0.637LiCl-0.363KCl",'Jiang, 2016', 750, 0)
-    analyzer.add_molten_salt('0.5NaCl-0.5KCl_Manga_2014_1100.0_RIM.csv', "0.5NaCl-0.5KCl", 'Manga, 2014', 1100, 4.32778)
-    analyzer.add_molten_salt('0.7LiCl-0.3CaCl2_Liang_2024_1073.0_RIM.csv', "0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073, 0)
-    analyzer.add_molten_salt('0.4903NaCl-0.5097CaCl2_Wei_2022_1023.0_RIM.csv', "0.4903NaCl-0.5097CaCl2", 'Wei, 2022', 1023, 3.76913)
-    analyzer.add_molten_salt('0.718KCl-0.282CaCl2_Wei_2022_1300.0_RIM.csv', "0.718KCl-0.282CaCl2", 'Wei, 2022', 1300, 0)
-    analyzer.add_molten_salt('0.465LiF-0.115NaF-0.42KF_Frandsen_2020_873.0_AP.csv',"0.465LiF-0.115NaF-0.42KF",'Frandsen, 2020', 873, 2.26059)
-    analyzer.add_molten_salt('0.345NaF-0.065MgF2-0.59KF_Solano_2021_1073.0_AP.csv',"0.345NaF-0.59KF-0.065MgF2",'Solano, 2021', 1073, 3.92263)
-    analyzer.add_molten_salt('0.45MgCl2-0.33NaCl-0.22KCl_Jiang_2024_750.0_PIM.csv',"0.45MgCl2-0.33NaCl-0.22KCl",'Jiang, 2024', 750, 0)
-    analyzer.add_molten_salt('0.38MgCl2-0.21NaCl-0.41KCl_Jiang_2024_750.0_PIM.csv',"0.38MgCl2-0.21NaCl-0.41KCl",'Jiang, 2024', 750, 0)
-    analyzer.add_molten_salt('0.417NaCl-0.058KCl-0.525CaCl2_Wei_2022_1023.0_RIM.csv', "0.417NaCl-0.525CaCl2-0.058KCl", 'Wei, 2022', 1023, 0)
-    analyzer.add_molten_salt('0.535NaCl-0.315MgCl2-0.15CaCl2_Wei_2022_1023.0_RIM.csv', "0.535NaCl-0.315MgCl2-0.15CaCl2", 'Wei, 2022', 1023, 3.52027)
+    analyzer.add_molten_salt('0.6LiF-0.4NaF_Grizzi_2024_1473.0_AP.csv',"0.6LiF-0.4NaF",'Grizzi, 2024', 1473, 2.63857, apply_savgol=True)
+    analyzer.add_molten_salt('0.5LiF-0.5BeF2_Sun_2024_900.0_AP.csv',"0.5LiF-0.5BeF2",'Sun, 2024', 900, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.66LiF-0.34BeF2_Fayfar_2024_973.0_AP.csv',"0.66LiF-0.34BeF2",'Fayfar, 2024', 973, 1.90187, apply_savgol=True)
+    analyzer.add_molten_salt('0.5LiCl-0.5KCl_Jiang_2016_727.0_RIM.csv', "0.5LiCl-0.5KCl", 'Jiang, 2016', 727, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.637LiCl-0.363KCl_Jiang_2016_750.0_RIM.csv',"0.637LiCl-0.363KCl",'Jiang, 2016', 750, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.5NaCl-0.5KCl_Manga_2014_1100.0_RIM.csv', "0.5NaCl-0.5KCl", 'Manga, 2014', 1100, 4.32778, apply_savgol=True)#, savgol_window_length=15, savgol_polyorder=3)
+    analyzer.add_molten_salt('0.7LiCl-0.3CaCl2_Liang_2024_1073.0_RIM.csv', "0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.4903NaCl-0.5097CaCl2_Wei_2022_1023.0_RIM.csv', "0.4903NaCl-0.5097CaCl2", 'Wei, 2022', 1023, 3.76913, apply_savgol=True)
+    analyzer.add_molten_salt('0.718KCl-0.282CaCl2_Wei_2022_1300.0_RIM.csv', "0.718KCl-0.282CaCl2", 'Wei, 2022', 1300, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.465LiF-0.115NaF-0.42KF_Frandsen_2020_873.0_AP.csv',"0.465LiF-0.115NaF-0.42KF",'Frandsen, 2020', 873, 2.26059, apply_savgol=True)
+    analyzer.add_molten_salt('0.345NaF-0.065MgF2-0.59KF_Solano_2021_1073.0_AP.csv',"0.345NaF-0.59KF-0.065MgF2",'Solano, 2021', 1073, 3.92263, apply_savgol=True)
+    analyzer.add_molten_salt('0.45MgCl2-0.33NaCl-0.22KCl_Jiang_2024_750.0_PIM.csv',"0.45MgCl2-0.33NaCl-0.22KCl",'Jiang, 2024', 750, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.38MgCl2-0.21NaCl-0.41KCl_Jiang_2024_750.0_PIM.csv',"0.38MgCl2-0.21NaCl-0.41KCl",'Jiang, 2024', 750, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.417NaCl-0.058KCl-0.525CaCl2_Wei_2022_1023.0_RIM.csv', "0.417NaCl-0.525CaCl2-0.058KCl", 'Wei, 2022', 1023, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.535NaCl-0.315MgCl2-0.15CaCl2_Wei_2022_1023.0_RIM.csv', "0.535NaCl-0.315MgCl2-0.15CaCl2", 'Wei, 2022', 1023, 3.52027, apply_savgol=True)
 
     # Actinides
-    analyzer.add_molten_salt('ThF4_Dai_2015_1633.0_PIM.csv',"1.0ThF4",'Dai, 2015', 1633, 0)
-    analyzer.add_molten_salt('UF4_Ocádiz-Flores_2021_1357.0_PIM.csv',"1.0UF4",'Ocadiz-Flores, 2021', 1357, 0)
-    analyzer.add_molten_salt('0.64NaCl-0.36UCl3_Andersson_2022_1250.0_AP.csv',"0.64NaCl-0.36UCl3",'Andersson, 2022', 1250, 2.5393)
-    analyzer.add_molten_salt('0.85KCl-0.15UCl3_Andersson_2024_1250.0_AP.csv',"0.85KCl-0.15UCl3",'Andersson, 2024', 1250, 0)
-    analyzer.add_molten_salt('0.75KCl-0.25UCl3_Andersson_2024_1250.0_AP.csv',"0.75KCl-0.25UCl3",'Andersson, 2024', 1250, 0)
-    analyzer.add_molten_salt('0.65KCl-0.35UCl3_Andersson_2024_1250.0_AP.csv',"0.65KCl-0.35UCl3",'Andersson, 2024', 1250, 0)
-    analyzer.add_molten_salt('0.5KCl-0.5UCl3_Andersson_2024_1250.0_AP.csv',"0.5KCl-0.5UCl3",'Andersson, 2024', 1250, 0)
-    analyzer.add_molten_salt('0.5454LiF-0.3636NaF-0.091UF4_Grizzi_2024_1473.0_AP.csv',"0.5454LiF-0.3636NaF-0.091UF4",'Grizzi, 2024', 1473, 0)
+    analyzer.add_molten_salt('ThF4_Dai_2015_1633.0_PIM.csv',"1.0ThF4",'Dai, 2015', 1633, 0, apply_savgol=True)
+    analyzer.add_molten_salt('UF4_Ocádiz-Flores_2021_1357.0_PIM.csv',"1.0UF4",'Ocadiz-Flores, 2021', 1357, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.64NaCl-0.36UCl3_Andersson_2022_1250.0_AP.csv',"0.64NaCl-0.36UCl3",'Andersson, 2022', 1250, 2.5393, apply_savgol=True)
+    analyzer.add_molten_salt('0.85KCl-0.15UCl3_Andersson_2024_1250.0_AP.csv',"0.85KCl-0.15UCl3",'Andersson, 2024', 1250, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.75KCl-0.25UCl3_Andersson_2024_1250.0_AP.csv',"0.75KCl-0.25UCl3",'Andersson, 2024', 1250, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.65KCl-0.35UCl3_Andersson_2024_1250.0_AP.csv',"0.65KCl-0.35UCl3",'Andersson, 2024', 1250, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.5KCl-0.5UCl3_Andersson_2024_1250.0_AP.csv',"0.5KCl-0.5UCl3",'Andersson, 2024', 1250, 0, apply_savgol=True)
+    analyzer.add_molten_salt('0.5454LiF-0.3636NaF-0.091UF4_Grizzi_2024_1473.0_AP.csv',"0.5454LiF-0.3636NaF-0.091UF4",'Grizzi, 2024', 1473, 0, apply_savgol=True)
     analyzer.add_molten_salt('0.78NaF-0.22UF4_Zhang_2026_900.0_AP.csv',"0.78NaF-0.22UF4",'900K-AIMD-Zhang, 2026', 900, 0, apply_savgol=True)
     analyzer.add_molten_salt('0.78NaF-0.22UF4_Zhang_2026_900.0_PIM.csv',"0.78NaF-0.22UF4",'900K-CMD-Zhang, 2026', 900, 0, apply_savgol=True)
     analyzer.add_molten_salt('0.78NaF-0.22UF4_Zhang_2026_1000.0_PIM.csv',"0.78NaF-0.22UF4",'1000K-CMD-Zhang, 2026', 1000, 0, apply_savgol=True)
