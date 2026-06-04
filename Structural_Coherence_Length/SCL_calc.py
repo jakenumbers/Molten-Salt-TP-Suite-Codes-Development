@@ -230,6 +230,10 @@ class MoltenSaltPDF:
         
         self.weighted_splines = self._create_weighted_splines()
         
+        # VDOS storage (populated during analyze_pdf)
+        self.vdos_data = {}        # {pair_name: (omega_grid, D_omega)}
+        self.vdos_overlaps = {}    # {(pair_a, pair_b): S_AB}
+        
         # Results Storage
         self.plot_data = []
         self.ion_pair_results = {}
@@ -499,6 +503,221 @@ class MoltenSaltPDF:
         
         return omega
 
+    def calculate_vdos(self, ion_pair_name, n_bins=500):
+        """
+        Calculate normalized Vibrational Density of States D(ω) for a cation-anion pair.
+        
+        Formalism:
+            1. PMF from unweighted g(r): W(r) = -k_B*T*ln(g(r))
+            2. Force constant: k(r) = d²W/dr²
+            3. Einstein frequency: ω(r) = √(k(r)/μ)  [only where k(r) > 0]
+            4. Map r²g(r) probability density into ω-space via histogram
+            5. Normalize so ∫D(ω)dω = 1
+        
+        Args:
+            ion_pair_name: standardized ion pair string (e.g., 'Na-Cl')
+            n_bins: number of histogram bins in ω-space
+            
+        Returns:
+            (omega_centers, D_omega): frequency grid (rad/ps) and normalized VDOS,
+            or (None, None) if calculation fails.
+        """
+        if ion_pair_name not in self.ion_pairs:
+            return None, None
+        
+        pair = self.ion_pairs[ion_pair_name]
+        reduced_mass = self.calculate_reduced_mass(ion_pair_name)
+        if reduced_mass is None:
+            return None, None
+        
+        # --- Step 1: PMF from unweighted g(r) ---
+        g_values = pair.spline(self.x_grid)
+        g_values_safe = np.maximum(g_values, 1e-10)
+        
+        k_B = 8.314462618e-3  # kJ/(mol*K)
+        pmf = -k_B * self.temp * np.log(g_values_safe)
+        
+        # --- Step 2: Force constant k(r) = d²W/dr² ---
+        dx = self.x_grid[1] - self.x_grid[0]
+        d1 = np.gradient(pmf, dx)
+        k_r = np.gradient(d1, dx)  # kJ/(mol·Å²)
+        
+        # --- Step 3: Restrict to concave PMF region (first coordination shell, k(r) > 0) ---
+        # Find the peak position to anchor the search
+        peak_x = pair.peak[0]
+        if peak_x is None or peak_x <= 0:
+            return None, None
+        peak_idx = np.argmin(np.abs(self.x_grid - peak_x))
+        
+        # Find the concave region around the peak where k(r) > 0
+        # Search left from peak
+        left_idx = peak_idx
+        while left_idx > 0 and k_r[left_idx - 1] > 0:
+            left_idx -= 1
+        # Search right from peak
+        right_idx = peak_idx
+        while right_idx < len(k_r) - 1 and k_r[right_idx + 1] > 0:
+            right_idx += 1
+        
+        # Extract the valid region
+        valid_mask = np.zeros(len(self.x_grid), dtype=bool)
+        valid_mask[left_idx:right_idx + 1] = True
+        valid_mask &= (k_r > 0) & (g_values > 0.01)
+        
+        if np.sum(valid_mask) < 3:
+            return None, None
+        
+        r_valid = self.x_grid[valid_mask]
+        g_valid = g_values[valid_mask]
+        k_valid = k_r[valid_mask]
+        
+        # --- Step 4: ω(r) = √(k(r)/μ) ---
+        # Convert k from kJ/(mol·Å²) to per-molecule SI
+        N_A = 6.02214076e23
+        k_si = k_valid * 1000 / 1e-20 / N_A   # N/m per molecule
+        mu_molecule = reduced_mass / N_A        # kg per molecule
+        
+        omega_r = np.sqrt(k_si / mu_molecule)   # rad/s
+        omega_r *= 1e-12                         # rad/ps
+        
+        # Probability density proportional to r²g(r)
+        prob = r_valid**2 * g_valid
+        
+        # Remove any NaN/Inf
+        finite_mask = np.isfinite(omega_r) & np.isfinite(prob) & (omega_r > 0)
+        if np.sum(finite_mask) < 3:
+            return None, None
+        
+        omega_r = omega_r[finite_mask]
+        prob = prob[finite_mask]
+        
+        # --- Step 5: Histogram into ω-space ---
+        omega_min, omega_max = np.min(omega_r), np.max(omega_r)
+        if omega_max <= omega_min:
+            return None, None
+        
+        bin_edges = np.linspace(omega_min, omega_max, n_bins + 1)
+        bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+        d_omega = bin_edges[1] - bin_edges[0]
+        
+        # Weighted histogram: sum r²g(r) contributions into each ω bin
+        D_omega, _ = np.histogram(omega_r, bins=bin_edges, weights=prob)
+        
+        # Normalize: ∫D(ω)dω = 1
+        total = np.sum(D_omega) * d_omega
+        if total > 0:
+            D_omega = D_omega / total
+        else:
+            return None, None
+        
+        return bin_centers, D_omega
+
+    def _compute_vdos_overlaps(self):
+        """
+        Compute VDOS for all cation-anion pairs and build the pairwise overlap matrix.
+        
+        S_AB = ∫ min(D_A(ω), D_B(ω)) dω
+        
+        Populates self.vdos_data and self.vdos_overlaps.
+        """
+        ca_pair_names = [name for name, p in self.ion_pairs.items() if p.type == 'ca']
+        
+        # Calculate VDOS for each ca pair
+        for name in ca_pair_names:
+            omega, D = self.calculate_vdos(name)
+            if omega is not None and D is not None:
+                self.vdos_data[name] = (omega, D)
+            else:
+                print(f"  Warning: VDOS calculation failed for {name}")
+        
+        if len(self.vdos_data) < 1:
+            return
+        
+        # Build a common ω grid for overlap integration
+        all_omega_min = min(om[0] for om, _ in self.vdos_data.values())
+        all_omega_max = max(om[-1] for om, _ in self.vdos_data.values())
+        n_common = 1000
+        omega_common = np.linspace(all_omega_min, all_omega_max, n_common)
+        d_omega = omega_common[1] - omega_common[0]
+        
+        # Interpolate all VDOS onto common grid
+        D_interp = {}
+        for name, (omega, D) in self.vdos_data.items():
+            f = interp1d(omega, D, kind='linear', bounds_error=False, fill_value=0)
+            D_interp[name] = f(omega_common)
+        
+        # Compute pairwise overlaps
+        names = sorted(self.vdos_data.keys())
+        print(f"\n  VDOS Overlap Matrix (S_AB):")
+        header = "  {:>12s}".format("") + "".join(f" {n:>10s}" for n in names)
+        print(header)
+        
+        for name_a in names:
+            row_str = f"  {name_a:>12s}"
+            for name_b in names:
+                if name_a == name_b:
+                    S_AB = 1.0
+                else:
+                    key = tuple(sorted([name_a, name_b]))
+                    if key in self.vdos_overlaps:
+                        S_AB = self.vdos_overlaps[key]
+                    else:
+                        overlap = np.minimum(D_interp[name_a], D_interp[name_b])
+                        S_AB = np.sum(overlap) * d_omega
+                        S_AB = np.clip(S_AB, 0, 1)
+                        self.vdos_overlaps[key] = S_AB
+                row_str += f" {S_AB:10.4f}"
+            print(row_str)
+
+    def _calculate_vdos_b_ph(self, pair_name, ca_pairs, sum_ca_weights):
+        """
+        Calculate VDOS-informed phonon transfer disruption factor.
+        
+        b_PH,ca = 1 - Σ_j (x_j * S_{ca,j}) / Σ_j x_j
+        
+        where j runs over all ca pairs (including self, where S_{ca,ca} = 1).
+        Falls back to concentration-only formula if VDOS data is unavailable.
+        
+        Args:
+            pair_name: standardized name of the current ca pair
+            ca_pairs: list of IonPairData for all ca pairs
+            sum_ca_weights: sum of weights of all ca pairs
+            
+        Returns:
+            b_ph: phonon transfer disruption factor in [0, 1]
+        """
+        if pair_name not in self.vdos_data or len(self.vdos_data) < 2:
+            # Fall back to original concentration-only formula
+            pair_weight = self.ion_pairs[pair_name].weight if pair_name in self.ion_pairs else 0
+            if sum_ca_weights > 0:
+                return np.clip(1 - (pair_weight / sum_ca_weights), 0, 1)
+            return 1.0
+        
+        numerator = 0.0
+        denominator = 0.0
+        
+        for other_pair in ca_pairs:
+            other_name = other_pair.name
+            x_j = other_pair.weight  # concentration weight of pair j
+            
+            if other_name == pair_name:
+                S_AB = 1.0  # self-overlap is always perfect
+            elif other_name in self.vdos_data:
+                key = tuple(sorted([pair_name, other_name]))
+                S_AB = self.vdos_overlaps.get(key, 0.0)
+            else:
+                S_AB = 0.0  # no VDOS available → assume no overlap (conservative)
+            
+            numerator += x_j * S_AB
+            denominator += x_j
+        
+        if denominator > 0:
+            b_ph = 1.0 - (numerator / denominator)
+        else:
+            b_ph = 1.0
+        
+        return np.clip(b_ph, 0, 1)
+
     def analyze_pdf(self):
         print(f"\n### Analysis for {self.comp} ###")
         
@@ -508,6 +727,9 @@ class MoltenSaltPDF:
         # Identify Cation-Anion Pairs
         ca_pairs = [p for name, p in self.ion_pairs.items() if p.type == 'ca']
         sum_ca_weights = sum(p.weight for p in ca_pairs)
+        
+        # Compute VDOS overlaps before the pair loop
+        self._compute_vdos_overlaps()
         
         for pair in ca_pairs:
             name = pair.name
@@ -542,11 +764,9 @@ class MoltenSaltPDF:
                 kf_val = 1 - (g_peak - g_min) / g_peak
             kf_val = np.clip(kf_val, 0, 1)
 
-            # b_PH (Phonon Transfer) Eq. 23
-            ph_val = 1.0
-            if sum_ca_weights > 0:
-                ph_val = 1 - (pair.weight / sum_ca_weights)
-            ph_val = np.clip(ph_val, 0, 1)
+            # b_PH (VDOS-informed Phonon Transfer)
+            ph_val = self._calculate_vdos_b_ph(name, ca_pairs, sum_ca_weights)
+            print(f"  b_PH (VDOS): {ph_val:.4f}")
 
             # Identify corresponding cation-cation pair
             cation = name.split('-')[0]
@@ -643,6 +863,15 @@ class MoltenSaltPDF:
             if fundamental_frequency is not None:
                 print(f"  ω₀: {fundamental_frequency:.4f} rad/ps (k={bond_strength:.4f} kJ/mol/Å², μ={reduced_mass*1000:.4f} g/mol)")
 
+            # Collect VDOS overlap values for this pair
+            pair_vdos_overlaps = {}
+            for other_pair in ca_pairs:
+                if other_pair.name == name:
+                    pair_vdos_overlaps[other_pair.name] = 1.0
+                else:
+                    key = tuple(sorted([name, other_pair.name]))
+                    pair_vdos_overlaps[other_pair.name] = self.vdos_overlaps.get(key, None)
+
             # Store Results
             self.ion_pair_results[name] = {
                 'scl': scl_pair,
@@ -656,6 +885,8 @@ class MoltenSaltPDF:
                 'bond_strength': bond_strength,
                 'reduced_mass': reduced_mass * 1000 if reduced_mass is not None else None,  # Convert back to g/mol for display
                 'fundamental_frequency': fundamental_frequency,
+                'b_ph': ph_val,
+                'vdos_overlaps': pair_vdos_overlaps,
             }
             
             self.plot_data.append({
@@ -692,7 +923,8 @@ class MoltenSaltPDF:
                 f'Pair {i} Min X (A)', f'Pair {i} Min Y', 
                 f'Pair {i} CC Peak X (A)', f'Pair {i} CC Peak Y',
                 f'Pair {i} PMF at Peak (kJ/mol)', f'Pair {i} Bond Strength (kJ/mol/A²)',
-                f'Pair {i} Reduced Mass (g/mol)', f'Pair {i} Fundamental Frequency (rad/ps)'
+                f'Pair {i} Reduced Mass (g/mol)', f'Pair {i} Fundamental Frequency (rad/ps)',
+                f'Pair {i} b_PH (VDOS)'
             ])
             
             if i <= len(sorted_pairs):
@@ -703,10 +935,11 @@ class MoltenSaltPDF:
                     round(res['minima_x'] or 0, 5), round(res['minima_y'] or 0, 5),
                     round(res['cc_peak_x'] or 0, 5), round(res['cc_peak_y'] or 0, 5),
                     round(res['pmf_at_peak'] or 0, 5), round(res['bond_strength'] or 0, 5),
-                    round(res['reduced_mass'] or 0, 5), round(res['fundamental_frequency'] or 0, 5)
+                    round(res['reduced_mass'] or 0, 5), round(res['fundamental_frequency'] or 0, 5),
+                    round(res.get('b_ph', 0), 5)
                 ])
             else:
-                data.extend([''] * 12)
+                data.extend([''] * 13)
                 
         # Write mode handling (don't duplicate if same comp/source exists)
         mode = 'a'
@@ -808,6 +1041,9 @@ class MoltenSaltPDF:
             # Access peak and minima
             peak = pdf_data.peak
             minima = pdf_data.minima
+
+        # Store ion_pair_colors for use by plot_vdos
+        self._ion_pair_colors = ion_pair_colors
 
         # In the plot_pdf method, update the S_i plotting section to:
         for data in self.plot_data:
@@ -995,12 +1231,161 @@ class MoltenSaltPDF:
         if show_plot:
             plt.show()
         plt.close()
+
+    def plot_vdos(self, show_plot=True, save_plot=True, output_dir=None):
+        """
+        Plot the normalized VDOS D(ω) for all cation-anion pairs in the mixture.
+        
+        Shows each pair's VDOS curve color-matched to the PDF plot, shades
+        pairwise overlap regions, and annotates S_AB values.
+        
+        Args:
+            show_plot: whether to display the plot interactively
+            save_plot: whether to save to disk
+            output_dir: output directory (defaults to SCL_plots inside get_scl_dir())
+        """
+        if not self.vdos_data:
+            print(f"No VDOS data available for {self.comp} — skipping VDOS plot.")
+            return
+        
+        # Need at least one ca pair with VDOS
+        ca_names = sorted(self.vdos_data.keys())
+        if len(ca_names) == 0:
+            return
+        
+        if output_dir is None:
+            output_dir = os.path.join(get_scl_dir(), 'SCL_plots')
+        if save_plot:
+            os.makedirs(output_dir, exist_ok=True)
+        
+        safe_source = ''.join(c if c.isalnum() else '_' for c in self.source.split(',')[0].strip())
+        
+        # Use ion pair colors from plot_pdf if available, otherwise generate
+        colors = getattr(self, '_ion_pair_colors', {})
+        if not colors:
+            cmap = plt.cm.tab10
+            for idx, name in enumerate(ca_names):
+                colors[name] = cmap(idx % 10)
+        
+        # Publication-style settings (match plot_pdf)
+        plt.rcParams['font.family'] = 'Times New Roman'
+        plt.rcParams['font.size'] = 14
+        plt.rcParams['axes.labelsize'] = 14
+        plt.rcParams['axes.labelweight'] = 'bold'
+        plt.rcParams['axes.linewidth'] = 1.5
+        plt.rcParams['xtick.labelsize'] = 14
+        plt.rcParams['ytick.labelsize'] = 14
+        plt.rcParams['xtick.direction'] = 'out'
+        plt.rcParams['ytick.direction'] = 'out'
+        plt.rcParams['xtick.major.width'] = 1.75
+        plt.rcParams['ytick.major.width'] = 1.75
+        _small_text = int(round(0.95 * 12))
+        plt.rcParams['legend.frameon'] = False
+        plt.rcParams['legend.fontsize'] = _small_text
+        plt.rcParams['mathtext.fontset'] = 'custom'
+        plt.rcParams['mathtext.rm'] = 'Times New Roman'
+        plt.rcParams['mathtext.it'] = 'Times New Roman:italic'
+        plt.rcParams['mathtext.bf'] = 'Times New Roman:bold'
+        
+        fig, ax = plt.subplots(figsize=(5.0, 4.0))
+        
+        # Build a common ω grid for plotting
+        all_omega_min = min(om[0] for om, _ in self.vdos_data.values())
+        all_omega_max = max(om[-1] for om, _ in self.vdos_data.values())
+        n_plot = 1000
+        omega_plot = np.linspace(all_omega_min, all_omega_max, n_plot)
+        
+        # Interpolate all VDOS onto common plotting grid
+        D_plot = {}
+        for name in ca_names:
+            omega, D = self.vdos_data[name]
+            f = interp1d(omega, D, kind='linear', bounds_error=False, fill_value=0)
+            D_plot[name] = f(omega_plot)
+        
+        # --- Plot each D(ω) curve ---
+        for name in ca_names:
+            color = colors.get(name, 'black')
+            ax.plot(omega_plot, D_plot[name], color=color, linewidth=1.5, label=f'D(ω): {name}')
+        
+        # --- Shade pairwise overlaps ---
+        if len(ca_names) >= 2:
+            from itertools import combinations
+            for name_a, name_b in combinations(ca_names, 2):
+                color_a = colors.get(name_a, 'gray')
+                color_b = colors.get(name_b, 'gray')
+                
+                overlap_curve = np.minimum(D_plot[name_a], D_plot[name_b])
+                
+                # Use a blended color for the overlap shading
+                # Convert colors to RGBA arrays for blending
+                import matplotlib.colors as mcolors
+                rgba_a = np.array(mcolors.to_rgba(color_a))
+                rgba_b = np.array(mcolors.to_rgba(color_b))
+                blend_color = 0.5 * (rgba_a[:3] + rgba_b[:3])
+                
+                ax.fill_between(omega_plot, 0, overlap_curve,
+                                color=blend_color, alpha=0.3, zorder=0)
+                
+                # Annotate with S_AB value
+                key = tuple(sorted([name_a, name_b]))
+                S_AB = self.vdos_overlaps.get(key, None)
+                if S_AB is not None:
+                    # Place annotation near the peak of the overlap curve
+                    peak_idx = np.argmax(overlap_curve)
+                    omega_peak = omega_plot[peak_idx]
+                    D_peak = overlap_curve[peak_idx]
+                    
+                    ax.annotate(
+                        f'S = {S_AB:.2f}',
+                        xy=(omega_peak, D_peak),
+                        xytext=(0, 8), textcoords='offset points',
+                        fontsize=_small_text,
+                        ha='center', va='bottom',
+                        color=blend_color * 0.7,  # slightly darker
+                        fontweight='bold'
+                    )
+        
+        ax.set_xlabel('ω [rad/ps]')
+        ax.set_ylabel('D(ω) [ps/rad]')
+        
+        # Pad x-axis slightly
+        omega_range = all_omega_max - all_omega_min
+        ax.set_xlim(all_omega_min - 0.02 * omega_range, all_omega_max + 0.02 * omega_range)
+        ax.set_ylim(bottom=0)
+        
+        legend = ax.legend(
+            loc='upper right',
+            facecolor='white',
+            frameon=True,
+            framealpha=0.75,
+            edgecolor='none',
+            borderpad=0.5,
+            handletextpad=0.5,
+            handlelength=1.5,
+            labelspacing=0.3
+        )
+        
+        plt.tight_layout()
+        
+        if save_plot:
+            base = f'VDOS_{self.comp}_{safe_source}'
+            png_path = os.path.join(output_dir, f'{base}.png')
+            pdf_path = os.path.join(output_dir, f'{base}.pdf')
+            plt.savefig(png_path, dpi=300, bbox_inches='tight')
+            plt.savefig(pdf_path, bbox_inches='tight')
+            print(f"VDOS plot saved to {png_path}")
+        
+        if show_plot:
+            plt.show()
+        plt.close()
+
    
 class PDFAnalyzer:
-    def __init__(self, save_plot_data=False, show_plot=False):
+    def __init__(self, save_plot_data=False, show_plot=False, plot_vdos=False):
         self.salts = []
         self.save_plot_data = save_plot_data
         self.show_plot = show_plot
+        self.plot_vdos = plot_vdos
 
     def add_molten_salt(self, pdf_file, comp_str, source, temp, gamma_bc, apply_savgol=False, savgol_window_length=None, savgol_polyorder=None):
         self.salts.append(MoltenSaltPDF(
@@ -1023,13 +1408,15 @@ class PDFAnalyzer:
     def plot_all(self):
         for salt in self.salts:
             salt.plot_pdf(show_plot=self.show_plot)
+            if self.plot_vdos:
+                salt.plot_vdos(show_plot=self.show_plot)
 
 # ==========================================
 # 3. Execution
 # ==========================================
 
 def main():
-    analyzer = PDFAnalyzer(save_plot_data=True,show_plot=False)
+    analyzer = PDFAnalyzer(save_plot_data=True, show_plot=False, plot_vdos=True)
 
     # --- Add your salts here (Copied from original script inputs) ---
     # Example:
@@ -1054,7 +1441,7 @@ def main():
     analyzer.add_molten_salt('0.66LiF-0.34BeF2_Fayfar_2024_973.0_AP.csv',"0.66LiF-0.34BeF2",'Fayfar, 2024', 973, 1.90187, apply_savgol=True)
     analyzer.add_molten_salt('0.5LiCl-0.5KCl_Jiang_2016_727.0_RIM.csv', "0.5LiCl-0.5KCl", 'Jiang, 2016', 727, 0, apply_savgol=True)
     analyzer.add_molten_salt('0.637LiCl-0.363KCl_Jiang_2016_750.0_RIM.csv',"0.637LiCl-0.363KCl",'Jiang, 2016', 750, 0, apply_savgol=True)
-    analyzer.add_molten_salt('0.5NaCl-0.5KCl_Manga_2014_1100.0_RIM.csv', "0.5NaCl-0.5KCl", 'Manga, 2014', 1100, 4.32778, apply_savgol=True)#, savgol_window_length=15, savgol_polyorder=3)
+    analyzer.add_molten_salt('0.5NaCl-0.5KCl_Manga_2014_1100.0_RIM.csv', "0.5NaCl-0.5KCl", 'Manga, 2014', 1100, 4.32778, apply_savgol=True)
     analyzer.add_molten_salt('0.7LiCl-0.3CaCl2_Liang_2024_1073.0_RIM.csv', "0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073, 0, apply_savgol=True)
     analyzer.add_molten_salt('0.4903NaCl-0.5097CaCl2_Wei_2022_1023.0_RIM.csv', "0.4903NaCl-0.5097CaCl2", 'Wei, 2022', 1023, 3.76913, apply_savgol=True)
     analyzer.add_molten_salt('0.718KCl-0.282CaCl2_Wei_2022_1300.0_RIM.csv', "0.718KCl-0.282CaCl2", 'Wei, 2022', 1300, 0, apply_savgol=True)
