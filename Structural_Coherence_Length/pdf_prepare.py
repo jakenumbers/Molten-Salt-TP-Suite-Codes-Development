@@ -62,7 +62,7 @@ def _determine_savgol_params(x, y, user_window=None, user_polyorder=None):
     if fwhm is not None and len(x) > 1:
         dx = x[1] - x[0]
         if dx > 0:
-            auto_wl = int(round(fwhm / (1.5 * dx)))
+            auto_wl = int(round(fwhm / (2 * dx)))
             auto_wl = max(auto_wl, 5)
             if auto_wl % 2 == 0:
                 auto_wl += 1
