@@ -1,4 +1,4 @@
-r (A),g(r)_weighted_F-F,g(r)_weighted_Li-F,g(r)_weighted_Li-Li,S_i_Li-F,Average_SCL,lambda_BC
+r (A),g(r)_weighted_F-F,g(r)_weighted_Li-F,g(r)_weighted_Li-Li,S_i_Li-F,Average_SCL,SCL_BC
 0.0,0.0,0.0,0.0,1.0,3.434929909098124,3.28553
 0.0051387714907453,0.0,0.0,0.0,1.0,3.434929909098124,3.28553
 0.0102775429814907,0.0,0.0,0.0,1.0,3.434929909098124,3.28553

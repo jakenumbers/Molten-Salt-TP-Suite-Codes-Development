@@ -14,16 +14,32 @@ from TC_models import functionlibrary
 # Import the subscript formatting function from SCL_calc.py
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Add Structural_Coherence_Length folder to path
+scl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Structural_Coherence_Length')
+if scl_dir not in sys.path:
+    sys.path.insert(0, scl_dir)
 from SCL_calc import format_composition_with_subscripts
 
 
 def _load_data():
-    TC_C_df = pd.read_excel('TC_compound_data.xlsx')
-    MSTDB_df = pd.read_csv('MSTDB.csv')
-    TC_Measurement_df = pd.read_excel('TC_measurement_data.xlsx')
+    # Get paths relative to this file's location
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)
+    
+    # All data files in REFERENCE_PROPERTIES folder
+    tc_compound_data_path = os.path.join(parent_dir, 'REFERENCE_PROPERTIES', 'TC_compound_data.xlsx')
+    tc_measurement_data_path = os.path.join(parent_dir, 'REFERENCE_PROPERTIES', 'TC_measurement_data.xlsx')
+    mstdb_path = os.path.join(parent_dir, 'REFERENCE_PROPERTIES', 'MSTDB.csv')
+    
+    # SCL results at root level
+    scl_results_path = os.path.join(parent_dir, 'SCL_results.csv')
+    
+    TC_C_df = pd.read_excel(tc_compound_data_path)
+    MSTDB_df = pd.read_csv(mstdb_path)
+    TC_Measurement_df = pd.read_excel(tc_measurement_data_path)
     # Match TC_calc source of SCL data
-    SCL_PDF_df = pd.read_csv('SCL_results.csv', encoding='latin-1')
+    SCL_PDF_df = pd.read_csv(scl_results_path, encoding='latin-1')
     return TC_C_df, MSTDB_df, SCL_PDF_df, TC_Measurement_df
 
 
@@ -294,7 +310,7 @@ def plot_tc_cli(
     use_available_data: bool = True,
     save_results_csv: bool = False,
     show_plot: bool = False,
-    output_dir: str = 'TC_plots',
+    output_dir: str = None,
     show_diff_comp_in_legend: bool = True,
     export_plot_data_csv: bool = False,
     *,
@@ -331,6 +347,10 @@ def plot_tc_cli(
     - export_plot_data_csv: if True, export temperature and thermal conductivity data to CSV for replotting.
     """
     TC_C_df, MSTDB_df, SCL_PDF_df, TC_Measurement_df = _load_data()
+    
+    # Set default output_dir to TC_plots within Thermal_Conductivity folder
+    if output_dir is None:
+        output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'TC_plots')
 
     compounds, mol_fracs, comp_label = _parse_composition(composition)
     T_melt = float(temp_range[0])
@@ -438,7 +458,7 @@ def plot_tc_cli(
         pass
 
     # Prepare optional SCL CSV swap to force internal CSV readers to use the matched row
-    scl_csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'SCL_results.csv')
+    scl_csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'SCL_results.csv')
     scl_backup_path = None
     if scl_row is not None and os.path.exists(scl_csv_path):
         try:
@@ -958,7 +978,7 @@ def plot_multi_composition_cli(
     use_available_data: bool = True,
     save_results_csv: bool = False,
     show_plot: bool = False,
-    output_dir: str = 'TC_plots',
+    output_dir: str = None,
     show_diff_comp_in_legend: bool = True,
     export_plot_data_csv: bool = False,
     figure_label: Optional[str] = None,
@@ -975,6 +995,10 @@ def plot_multi_composition_cli(
 
     if not composition_configs:
         raise ValueError("composition_configs must contain at least one composition entry")
+    
+    # Set default output_dir to TC_plots within Thermal_Conductivity folder
+    if output_dir is None:
+        output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'TC_plots')
 
     # Determine a palette large enough for all series across compositions
     total_colors = 0
@@ -1097,7 +1121,7 @@ def run_many(configs: List[Dict]):
                 use_available_data=cfg.get('use_available_data', True),
                 save_results_csv=cfg.get('save_results_csv', False),
                 show_plot=cfg.get('show_plot', False),
-                output_dir=cfg.get('output_dir', 'TC_plots'),
+                output_dir=cfg.get('output_dir'),
                 show_diff_comp_in_legend=cfg.get('show_diff_comp_in_legend', True),
                 export_plot_data_csv=cfg.get('export_plot_data_csv', False),
                 figure_label=cfg.get('figure_label'),
@@ -1115,7 +1139,7 @@ def run_many(configs: List[Dict]):
                 use_available_data=cfg.get('use_available_data', True),
                 save_results_csv=cfg.get('save_results_csv', False),
                 show_plot=cfg.get('show_plot', False),
-                output_dir=cfg.get('output_dir', 'TC_plots'),
+                output_dir=cfg.get('output_dir'),
                 show_diff_comp_in_legend=cfg.get('show_diff_comp_in_legend', True),
                 export_plot_data_csv=cfg.get('export_plot_data_csv', False),
                 figure_name_override=cfg.get('figure_label'),
@@ -1130,6 +1154,7 @@ def _save_results_to_csv(melt_results: List[Dict]):
     """Append results to the same CSV structure as TC_calc.save_results_to_csv()."""
     import csv
 
+    # Save results to Thermal_Conductivity folder
     csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'TC_calc_results.csv')
     model_columns = list(functionlibrary().keys())
 
