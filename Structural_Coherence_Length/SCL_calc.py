@@ -1599,7 +1599,7 @@ def main():
         #   'coordination'   — coordination number mismatch
         #   'polarizability' — anion polarizability accommodation
         #   None / empty     — original concentration-only
-        b_ph_factors={},
+        b_ph_factors={'dispersion'},
     )
 
     # --- Unary Salts (9) ---

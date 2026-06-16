@@ -32,8 +32,8 @@ def _load_data():
     tc_measurement_data_path = os.path.join(parent_dir, 'REFERENCE_PROPERTIES', 'TC_measurement_data.xlsx')
     mstdb_path = os.path.join(parent_dir, 'REFERENCE_PROPERTIES', 'MSTDB.csv')
     
-    # SCL results at root level
-    scl_results_path = os.path.join(parent_dir, 'SCL_results.csv')
+    # SCL results in Structural_Coherence_Length folder
+    scl_results_path = os.path.join(parent_dir, 'Structural_Coherence_Length', 'SCL_results.csv')
     
     TC_C_df = pd.read_excel(tc_compound_data_path)
     MSTDB_df = pd.read_csv(mstdb_path)
@@ -402,18 +402,6 @@ def plot_tc_cli(
 
     estimation_methods_dict = functionlibrary()
 
-    # Function to map model names to shorter versions
-    def map_model_name(method):
-        name_map = {
-            'Present Model': 'SCM',
-            'Present Model, Mix Data': 'SCM, Mix Data',
-            'Gheribi-KT24': 'KTM',
-            'Gheribi-KT24, Mix Data': 'KTM, Mix Data',
-            'Zhao-PGM': 'PGM',
-            'Zhao-PGM, Mix Data': 'PGM, Mix Data'
-        }
-        return name_map.get(method, method)
-
     # Track compositions for legend labels
     model_compositions = set()
     experimental_sources = set()
@@ -458,7 +446,7 @@ def plot_tc_cli(
         pass
 
     # Prepare optional SCL CSV swap to force internal CSV readers to use the matched row
-    scl_csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'SCL_results.csv')
+    scl_csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'Structural_Coherence_Length', 'SCL_results.csv')
     scl_backup_path = None
     if scl_row is not None and os.path.exists(scl_csv_path):
         try:
@@ -504,7 +492,7 @@ def plot_tc_cli(
             # Handle dictionary outputs
             if isinstance(out, dict):
                 lambda_mix_T = out['thermal_conductivity']
-                if method in ['Present Model', 'Present Model, Mix Data']:
+                if method in ['SCM', 'SCM, Mix Data']:
                     additional_outputs[f'{method}_specific_heat_m'] = out.get('specific_heat_m', '')
                     additional_outputs[f'{method}_specific_heat_prime'] = out.get('specific_heat_prime', '')
                     additional_outputs[f'{method}_sound_velocity_m'] = out.get('sound_velocity_m', '')
@@ -525,7 +513,7 @@ def plot_tc_cli(
                 model_predictions_at_melt[method] = ''
 
             # Plot
-            model_label = map_model_name(method)
+            model_label = method
             if append_composition_to_model_label:
                 model_label = f"{model_label} ({formatted_title})"
             if composition_label_override is not None:
@@ -534,11 +522,11 @@ def plot_tc_cli(
             # Determine base model and if it's Mix Data
             base_model = None
             is_mix_data = 'Mix Data' in method
-            if 'Gheribi-KT24' in method:
+            if 'KTM' in method:
                 base_model = 'KTM'
-            elif 'Present Model' in method:
+            elif 'SCM' in method:
                 base_model = 'SCM'
-            elif 'Zhao-PGM' in method:
+            elif 'PGM' in method:
                 base_model = 'PGM'
             
             # Special handling for multi-composition plots: use different colors per composition
@@ -555,14 +543,14 @@ def plot_tc_cli(
                 if base_model:
                     # Look for both versions of this model family in methods list
                     if base_model == 'KTM':
-                        regular_exists = any('Gheribi-KT24' in method and 'Mix Data' not in method for method in methods)
-                        mix_exists = any('Gheribi-KT24, Mix Data' in method for method in methods)
+                        regular_exists = any('KTM' in method and 'Mix Data' not in method for method in methods)
+                        mix_exists = any('KTM, Mix Data' in method for method in methods)
                     elif base_model == 'SCM':
-                        regular_exists = any('Present Model' in method and 'Mix Data' not in method for method in methods)
-                        mix_exists = any('Present Model, Mix Data' in method for method in methods)
+                        regular_exists = any('SCM' in method and 'Mix Data' not in method for method in methods)
+                        mix_exists = any('SCM, Mix Data' in method for method in methods)
                     elif base_model == 'PGM':
-                        regular_exists = any('Zhao-PGM' in method and 'Mix Data' not in method for method in methods)
-                        mix_exists = any('Zhao-PGM, Mix Data' in method for method in methods)
+                        regular_exists = any('PGM' in method and 'Mix Data' not in method for method in methods)
+                        mix_exists = any('PGM, Mix Data' in method for method in methods)
                     else:
                         regular_exists = False
                         mix_exists = False
@@ -1005,7 +993,7 @@ def plot_multi_composition_cli(
     for cfg in composition_configs:
         comp = cfg['composition']
         comp_compounds, _, _ = _parse_composition(comp)
-        desired_method = 'Present Model' if len(comp_compounds) == 1 else 'Present Model, Mix Data'
+        desired_method = 'SCM' if len(comp_compounds) == 1 else 'SCM, Mix Data'
         cfg_methods = [desired_method]
         cfg_measurements = cfg.get('measurement_sources', measurement_sources) or []
         cfg_mstdb = cfg.get('mstdb_formulas', mstdb_formulas) or []
@@ -1030,7 +1018,7 @@ def plot_multi_composition_cli(
             formatted_label = cfg['label']
         else:
             formatted_label = format_composition_with_subscripts(normalized_label)
-        desired_method = 'Present Model' if len(comp_compounds) == 1 else 'Present Model, Mix Data'
+        desired_method = 'SCM' if len(comp_compounds) == 1 else 'SCM, Mix Data'
         comp_methods = [desired_method]
         if not comp_methods:
             raise ValueError(f"Methods must be provided for composition '{comp}'")

@@ -2,7 +2,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0LiF',
         'temp_range': (1121.2, 1400.0),
-        'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+        'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
         'measurement_sources': ['LiF (Golyshev, 1992)', 'LiF (Smirnov, 1987)', 'LiF (Khlebnikov, 1981)'],
         'scl_composition_with_source': '1.0LiF (Walz, 2019)',
         'save_results_csv': True,
@@ -12,7 +12,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0NaF',
         'temp_range': (1268, 1300.0),
-        'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+        'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
         'measurement_sources': ['NaF (Smirnov, 1987)', 'NaF (Polyakov, 1975)'],
         'scl_composition_with_source': '1.0NaF (Walz, 2019)',
         'save_results_csv': True,
@@ -22,7 +22,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0KF',
         'temp_range': (1131.2, 1300.0),
-        'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+        'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
         'measurement_sources': ['KF (Smirnov, 1987)'],
         'scl_composition_with_source': '1.0KF (Walz, 2019)',
         'save_results_csv': True,
@@ -32,7 +32,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0LiCl',
         'temp_range': (883.0, 1350.0),
-        'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+        'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
         'measurement_sources': ['LiCl (Nagasaka, 1992)'],
         'scl_composition_with_source': '1.0LiCl (Walz, 2019)',
         'save_results_csv': True,
@@ -42,7 +42,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '1.0NaCl',
     #     'temp_range': (1073.8, 1400.0),
-    #     'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+    #     'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
     #     'measurement_sources': ['NaCl (Harada, 1992)', 'NaCl (Nagasaka 1992)'],
     #     'scl_composition_with_source': '1.0NaCl (Walz, 2019)',
     #     'save_results_csv': True,
@@ -51,7 +51,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0NaCl',
         'temp_range': (1073.8, 1400.0),
-        'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+        'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
         'measurement_sources': ['NaCl (Harada, 1992)', 'NaCl (Nagasaka 1992)'],
         'scl_composition_with_source': '1.0NaCl (Lu, 2021)',
         'save_results_csv': True,
@@ -61,7 +61,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0KCl',
         'temp_range': (1042.7, 1400.0),
-        'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+        'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
         'measurement_sources': ['KCl (Harada, 1992)', 'KCl (Nagasaka, 1992)'],
         'scl_composition_with_source': '1.0KCl (Walz, 2019)',
         'save_results_csv': True,
@@ -71,7 +71,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0MgCl2',
         'temp_range': (987.0, 1400.0),
-        'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+        'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
         'measurement_sources': ['MgCl2 (Filatov, 2005)'],
         'scl_composition_with_source': '1.0MgCl2 (Roy, 2021)',
         'save_results_csv': True,
@@ -81,7 +81,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '1.0MgCl2',
     #     'temp_range': (987.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+    #     'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
     #     'measurement_sources': ['MgCl2 (Filatov, 2005)'],
     #     'scl_composition_with_source': '1.0MgCl2 (McGreevy, 1987)',
     #     'save_results_csv': True,
@@ -90,7 +90,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '1.0MgCl2',
     #     'temp_range': (987.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+    #     'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
     #     'measurement_sources': ['MgCl2 (Filatov, 2005)'],
     #     'scl_composition_with_source': '1.0MgCl2 (Lu, 2021)',
     #     'save_results_csv': True,
@@ -99,7 +99,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '1.0CaCl2',
     #     'temp_range': (1045.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+    #     'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
     #     'measurement_sources': ['CaCl2 (Wei, 2022; MD)'],
     #     'scl_composition_with_source': '1.0CaCl2 (McGreevy, 1987)',
     #     'save_results_csv': True,
@@ -108,7 +108,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0CaCl2',
         'temp_range': (1045.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+        'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
         'measurement_sources': ['CaCl2 (Janz, 1978)'],
         'scl_composition_with_source': '1.0CaCl2 (Bu, 2021)',
         'save_results_csv': True,
@@ -118,7 +118,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0SrCl2',
         'temp_range': (1146.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Present Model', 'Zhao-PGM'],#'Gheribi-KT24', 'Present Model', 'Zhao-PGM'],
+        'methods': ['KTM', 'SCM', 'PGM'],#'KTM', 'SCM', 'PGM'],
         'measurement_sources': [],
         'scl_composition_with_source': '1.0SrCl2 (McGreevy, 1987)',
         'save_results_csv': True,
@@ -128,7 +128,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.6LiF-0.4NaF',
         'temp_range': (930, 1200.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': ['0.6LiF-0.4NaF (Ruth, 2023)'],
         'scl_composition_with_source': '0.6LiF-0.4NaF (Grizzi, 2024)',
         'save_results_csv': True,
@@ -138,7 +138,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.5BeF2-0.5LiF',
         'temp_range': (654, 1000.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.5BeF2-0.5LiF (Sun, 2024)',
         'save_results_csv': True,
@@ -148,7 +148,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.34BeF2-0.66LiF',
         'temp_range': (713.15, 1200.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': ['0.66LiF-0.34BeF2 (Redkin, 2022)', '0.66LiF-0.34BeF2 (Kato, 1983)', '0.66LiF-0.34BeF2 (Bobrova, 2023)'],
         'scl_composition_with_source': '0.66LiF-0.34BeF2 (Fayfar, 2024)',
         'save_results_csv': True,
@@ -158,7 +158,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.66LiF-0.34BeF2',
         'temp_range': (713.15, 1200.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': ['0.66LiF-0.34BeF2 (Redkin, 2022)', '0.66LiF-0.34BeF2 (Kato, 1983)', '0.66LiF-0.34BeF2 (Bobrova, 2023)'],
         'scl_composition_with_source': '0.66LiF-0.34BeF2 (Yin, 2025)',
         'save_results_csv': True,
@@ -168,7 +168,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.625LiF-0.3125BeF2-0.0625ThF4',
         'temp_range': (713.15, 1200.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': ['0.66LiF-0.34BeF2 (Redkin, 2022)', '0.66LiF-0.34BeF2 (Kato, 1983)', '0.66LiF-0.34BeF2 (Bobrova, 2023)'],
         'scl_composition_with_source': '0.625LiF-0.3125BeF2-0.0625ThF4 (Yin, 2025)',
         'save_results_csv': True,
@@ -178,7 +178,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.60LiF-0.30BeF2-0.10ThF4',
         'temp_range': (713.15, 1200.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': ['0.66LiF-0.34BeF2 (Redkin, 2022)', '0.66LiF-0.34BeF2 (Kato, 1983)', '0.66LiF-0.34BeF2 (Bobrova, 2023)'],
         'scl_composition_with_source': '0.60LiF-0.30BeF2-0.10ThF4 (Yin, 2025)',
         'save_results_csv': True,
@@ -188,7 +188,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.5455LiF-0.2727BeF2-0.1818ThF4',
         'temp_range': (713.15, 1200.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': ['0.66LiF-0.34BeF2 (Redkin, 2022)', '0.66LiF-0.34BeF2 (Kato, 1983)', '0.66LiF-0.34BeF2 (Bobrova, 2023)'],
         'scl_composition_with_source': '0.5455LiF-0.2727BeF2-0.1818ThF4 (Yin, 2025)',
         'save_results_csv': True,
@@ -198,7 +198,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.5LiCl-0.5KCl',
         'temp_range': (738, 1100.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.5LiCl-0.5KCl (Jiang, 2016)',
         'save_results_csv': True,
@@ -208,7 +208,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.637LiCl-0.363KCl',
         'temp_range': (665.15, 1100.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': ['0.582LiCl-0.418KCl (Merritt, 2022)'],
         'scl_composition_with_source': '0.637LiCl-0.363KCl (Jiang, 2016)',
         'save_results_csv': True,
@@ -218,7 +218,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.5NaCl-0.5KCl',
         'temp_range': (930, 1200.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': ['0.51NaCl-0.49KCl (Ruth, 2024)','0.44NaCl-0.56KCl (Birri, 2023)','0.44NaCl-0.56KCl (Birri, 2022)'],
         'scl_composition_with_source': '0.5NaCl-0.5KCl (Manga, 2013)',
         'save_results_csv': True,
@@ -228,7 +228,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.22NaCl-0.393KCl-0.387ZnCl2',
     #     'temp_range': (553, 950.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
     #     'measurement_sources': ['0.22NaCl-0.393KCl-0.387ZnCl2 (Xi, 2024-MD)','0.13.8NaCl-0.419KCl-0.443ZnCl2 (Xi, 2024)'],
     #     'scl_composition_with_source': '0.22NaCl-0.393KCl-0.387ZnCl2 (Xi373, 2024)',
     #     'save_results_csv': True,
@@ -237,7 +237,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.22NaCl-0.393KCl-0.387ZnCl2',
     #     'temp_range': (553, 950.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
     #     'measurement_sources': ['0.22NaCl-0.393KCl-0.387ZnCl2 (Xi, 2024-MD)','0.13.8NaCl-0.419KCl-0.443ZnCl2 (Xi, 2024)'],
     #     'scl_composition_with_source': '0.22NaCl-0.393KCl-0.387ZnCl2 (Xi1073, 2024)',
     #     'save_results_csv': True,
@@ -246,7 +246,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.34BeF2-0.66LiF',
     #     'temp_range': (713.15, 1200.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
     #     'measurement_sources': ['0.66LiF-0.34BeF2 (Schorne-Pinto, 2024)'],
     #     'scl_composition_with_source': '0.34BeF2-0.66LiF (Fayfar, 2023)',
     #     'save_results_csv': True,
@@ -255,7 +255,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.3CaCl2-0.7LiCl',
         'temp_range': (771.15, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.3CaCl2-0.7LiCl (Liang, 2024)',
         'save_results_csv': True,
@@ -265,7 +265,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.5097CaCl2-0.4903NaCl',
         'temp_range': (779.15, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': ['0.52NaCl-0.48CaCl2 (Tian, 2021)'],
         'scl_composition_with_source': '0.5097CaCl2-0.4903NaCl (Wei, 2022)',
         'save_results_csv': True,
@@ -275,7 +275,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.282CaCl2-0.718KCl',
         'temp_range': (921.15, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.282CaCl2-0.718KCl (Wei, 2022)',
         'save_results_csv': True,
@@ -285,7 +285,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.42KF-0.465LiF-0.115NaF',
         'temp_range': (735.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': ['0.465LiF-0.115NaF-0.42KF (Merritt, 2022)', '0.465LiF-0.115NaF-0.42KF (Gallagher, 2022)', '0.465LiF-0.115NaF-0.42KF (Rudenko, 2022)', '0.465LiF-0.115NaF-0.42KF (Robertson, 2022)'],
         'scl_composition_with_source': '0.42KF-0.465LiF-0.115NaF (Frandsen, 2020)',
         'save_results_csv': True,
@@ -295,7 +295,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.59KF-0.065MgF2-0.345NaF',
         'temp_range': (958.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': ['0.345NaF-0.59KF-0.065MgF2 (Rudenko, 2024)'],
         'scl_composition_with_source': '0.59KF-0.065MgF2-0.345NaF (Solano, 2021)',
         'save_results_csv': True,
@@ -307,7 +307,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.282CaCl2-0.718KCl',
     #     'temp_range': (921.15, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
     #     'measurement_sources': [],
     #     'scl_composition_with_source': '0.282CaCl2-0.718KCl (Wei, 2022)',
     #     'save_results_csv': True,
@@ -316,7 +316,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.22KCl-0.45MgCl2-0.33NaCl',
         'temp_range': (658.15, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.22KCl-0.45MgCl2-0.33NaCl (Jiang, 2024)',
         'save_results_csv': True,
@@ -326,7 +326,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.41KCl-0.38MgCl2-0.21NaCl',
         'temp_range': (660.15, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.41KCl-0.38MgCl2-0.21NaCl (Jiang, 2024)',
         'save_results_csv': True,
@@ -336,7 +336,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.525CaCl2-0.058KCl-0.417NaCl',
         'temp_range': (769.45, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.525CaCl2-0.058KCl-0.417NaCl (Wei, 2022)',
         'save_results_csv': True,
@@ -346,7 +346,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.535NaCl-0.15CaCl2-0.315MgCl2',
         'temp_range': (829, 1250.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24','Present Model', 'Gheribi-KT24, Mix Data','Present Model, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM','SCM', 'KTM, Mix Data','SCM, Mix Data', 'Ideal'],
         'measurement_sources': ['0.535NaCl-0.315MgCl2-0.15CaCl2 (Rong, 2015)'],
         'scl_composition_with_source': '0.15CaCl2-0.315MgCl2-0.535NaCl (Wei, 2022)',
         'save_results_csv': True,
@@ -356,7 +356,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0ThF4',
         'temp_range': (1384, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],#'Gheribi-KT24','Present Model'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],#'KTM','SCM'],
         #'measurement_sources': [],
         'scl_composition_with_source': '1.0ThF4 (Dai, 2015)',
         'save_results_csv': True,
@@ -366,7 +366,7 @@ BASE_CONFIGS = [
     {
         'composition': '1.0UF4',
         'temp_range': (1309, 1600.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],#'Gheribi-KT24','Present Model'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],#'KTM','SCM'],
         #'measurement_sources': [],
         'scl_composition_with_source': '1.0UF4 (Ocadiz-Flores, 2021)',
         'save_results_csv': True,
@@ -376,7 +376,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.64NaCl-0.36UCl3',
         'temp_range': (784.15, 1200.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data'],
         'measurement_sources': ['63NaCl-37UCl3 (Termini, 2024)', '65.8NaCl-34.2UCl3 (Rose, 2023)'],
         'scl_composition_with_source': '0.64NaCl-0.36UCl3 (Andersson, 2022)',
         'save_results_csv': True,
@@ -386,7 +386,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.63NaCl-0.37UCl3',
         'temp_range': (784.15, 1200.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data'],
         'measurement_sources': ['63NaCl-37UCl3 (Termini, 2024)'],
         'scl_composition_with_source': '0.63NaCl-0.37UCl3 (Andersson, 2022)',
         'save_results_csv': True,
@@ -396,7 +396,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.658NaCl-0.342UCl3',
         'temp_range': (784.15, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data'],
         'measurement_sources': ['65.8NaCl-34.2UCl3 (Rose, 2023)'],
         'scl_composition_with_source': '0.658NaCl-0.342UCl3 (Andersson, 2022)',
         'save_results_csv': True,
@@ -406,7 +406,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.5454LiF-0.3636NaF-0.091UF4',
         'temp_range': (923.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.5454LiF-0.3636NaF-0.091UF4 (Grizzi, 2024)',
         'save_results_csv': True,
@@ -416,7 +416,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.85KCl-0.15UCl3',
         'temp_range': (873.15, 1400.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.85KCl-0.15UCl3 (Andersson, 2024)',
         'save_results_csv': True,
@@ -426,7 +426,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.75KCl-0.25UCl3',
         'temp_range': (873.15, 1400.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.75KCl-0.25UCl3 (Andersson, 2024)',
         'save_results_csv': True,
@@ -436,7 +436,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.65KCl-0.35UCl3',
         'temp_range': (873.15, 1400.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.65KCl-0.35UCl3 (Andersson, 2024)',
         'save_results_csv': True,
@@ -446,7 +446,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.5KCl-0.5UCl3',
         'temp_range': (873.15, 1400.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.5KCl-0.5UCl3 (Andersson, 2024)',
         'save_results_csv': True,
@@ -456,7 +456,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.78NaF-0.22UF4',
         'temp_range': (900.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.78NaF-0.22UF4 (900K-AIMD-Zhang, 2026)',
         'save_results_csv': True,
@@ -466,7 +466,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.78NaF-0.22UF4',
         'temp_range': (900.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.78NaF-0.22UF4 (900K-CMD-Zhang, 2026)',
         'save_results_csv': True,
@@ -476,7 +476,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.78NaF-0.22UF4',
         'temp_range': (1000.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.78NaF-0.22UF4 (1000K-CMD-Zhang, 2026)',
         'save_results_csv': True,
@@ -486,7 +486,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.78NaF-0.22UF4',
         'temp_range': (1100.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.78NaF-0.22UF4 (1100K-CMD-Zhang, 2026)',
         'save_results_csv': True,
@@ -496,7 +496,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.78NaF-0.22UF4',
         'temp_range': (1200.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.78NaF-0.22UF4 (1200K-CMD-Zhang, 2026)',
         'save_results_csv': True,
@@ -506,7 +506,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.57NaF-0.16KF-0.27UF4',
         'temp_range': (900.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.57NaF-0.16KF-0.27UF4 (900K-AIMD-Zhang, 2026)',
         'save_results_csv': True,
@@ -516,7 +516,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.57NaF-0.16KF-0.27UF4',
         'temp_range': (1000.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.57NaF-0.16KF-0.27UF4 (1000K-AIMD-Zhang, 2026)',
         'save_results_csv': True,
@@ -526,7 +526,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.57NaF-0.16KF-0.27UF4',
         'temp_range': (1100.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.57NaF-0.16KF-0.27UF4 (1100K-AIMD-Zhang, 2026)',
         'save_results_csv': True,
@@ -536,7 +536,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.57NaF-0.16KF-0.27UF4',
         'temp_range': (1200.0, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.57NaF-0.16KF-0.27UF4 (1200K-AIMD-Zhang, 2026)',
         'save_results_csv': True,
@@ -546,7 +546,7 @@ BASE_CONFIGS = [
     {
         'composition': '0.63NaCl-0.37UCl3',
         'temp_range': (784.15, 1300.0),
-        'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+        'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
         'measurement_sources': [],
         'scl_composition_with_source': '0.63NaCl-0.37UCl3 (AIMD-Zhang, 2026)',
         'save_results_csv': True,
@@ -558,7 +558,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.725LiF-0.265BeF2-0.01UF4',
     #     'temp_range': (723.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'Ideal'],
     #     'measurement_sources': ['0.725LiF-0.265BeF2-0.01UF4 (Bobrova, 2023)'],
     #     'scl_composition_with_source': '0.725LiF-0.265BeF2-0.01UF4 (none)',
     #     'save_results_csv': True,
@@ -567,7 +567,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.72LiF-0.26BeF2-0.02UF4',
     #     'temp_range': (723.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'Ideal'],
     #     'measurement_sources': ['0.72LiF-0.26BeF2-0.02UF4 (Bobrova, 2023)'],
     #     'scl_composition_with_source': '0.72LiF-0.26BeF2-0.02UF4 (none)',
     #     'save_results_csv': True,
@@ -576,7 +576,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.712LiF-0.23BeF2-0.05ZrF4-0.008UF4',
     #     'temp_range': (723.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'Ideal'],
     #     'measurement_sources': ['0.712LiF-0.23BeF2-0.05ZrF4-0.008UF4 (Rosenthal, 1969)'],
     #     'scl_composition_with_source': '0.712LiF-0.23BeF2-0.05ZrF4-0.008UF4 (none)',
     #     'save_results_csv': True,
@@ -585,7 +585,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.675LiF-0.2BeF2-0.12ThF4-0.005UF4',
     #     'temp_range': (723.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'Ideal'],
     #     'measurement_sources': ['0.675LiF-0.20BeF2-0.12ThF4-0.005UF4 (Rosenthal, 1969)'],
     #     'scl_composition_with_source': '0.675LiF-0.2BeF2-0.12ThF4-0.005UF4 (none)',
     #     'save_results_csv': True,
@@ -594,7 +594,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.28NaF-0.42KF-0.3UF4',
     #     'temp_range': (878.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'Ideal'],
     #     'measurement_sources': ['0.42KF-0.28NaF-0.30UF4 (Rudenko, 2024)'],
     #     'scl_composition_with_source': '0.28NaF-0.42KF-0.3UF4 (none)',
     #     'save_results_csv': True,
@@ -603,7 +603,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.24NaF-0.36KF-0.4UF4',
     #     'temp_range': (878.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'Ideal'],
     #     'measurement_sources': ['0.36KF-0.24NaF-0.40UF4 (Rudenko, 2024)'],
     #     'scl_composition_with_source': '0.24NaF-0.36KF-0.4UF4 (none)',
     #     'save_results_csv': True,
@@ -612,7 +612,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.2NaF-0.3KF-0.5UF4',
     #     'temp_range': (878.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'Ideal'],
     #     'measurement_sources': ['0.30KF-0.20NaF-0.50UF4 (Rudenko, 2024)'],
     #     'scl_composition_with_source': '0.2NaF-0.3KF-0.5UF4 (none)',
     #     'save_results_csv': True,
@@ -621,7 +621,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.73LiF-0.27BeF2',
     #     'temp_range': (723.0, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'Ideal'],
     #     'measurement_sources': ['0.73LiF-0.27BeF2 (Bobrova, 2023)'],
     #     'scl_composition_with_source': '0.73LiF-0.27BeF2 (none)',
     #     'save_results_csv': True,
@@ -630,7 +630,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.5KCl-0.5UCl3',
     #     'temp_range': (815, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
     #     'measurement_sources': ['0.55KCl-0.45UCl3 (Bratescu, 2023)'],
     #     'scl_composition_with_source': '0.5KCl-0.5UCl3 (Andersson, 2022)',
     #     'save_results_csv': True,
@@ -639,7 +639,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.85KCl-0.15UCl3',
     #     'temp_range': (957, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
     #     'measurement_sources': ['0.85KCl-0.15UCl3 (Bratescu, 2023)'],
     #     'scl_composition_with_source': '0.85KCl-0.15UCl3 (Andersson, 2022)',
     #     'save_results_csv': True,
@@ -648,7 +648,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.75KCl-0.25UCl3',
     #     'temp_range': (880, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
     #     'measurement_sources': ['0.75KCl-0.25UCl3 (Bratescu, 2023)'],
     #     'scl_composition_with_source': '0.75KCl-0.25UCl3 (Andersson, 2022)',
     #     'save_results_csv': True,
@@ -657,7 +657,7 @@ BASE_CONFIGS = [
     # {
     #     'composition': '0.65KCl-0.35UCl3',
     #     'temp_range': (881, 1300.0),
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'], #'Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data', 'Ideal'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'], #'KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data', 'Ideal'],
     #     'measurement_sources': ['0.65KCl-0.35UCl3 (Bratescu, 2023)'],
     #     'scl_composition_with_source': '0.65KCl-0.35UCl3 (Andersson, 2022)',
     #     'save_results_csv': True,
@@ -668,7 +668,7 @@ BASE_CONFIGS = [
 SPEC_CONFIGS = [
 
     {
-        'methods': ['Present Model, Mix Data'],
+        'methods': ['SCM, Mix Data'],
         'legend_loc': 'upper left',
         'save_results_csv': True,
         'show_plot': True,
@@ -720,7 +720,7 @@ SPEC_CONFIGS = [
     },
 
     {
-        'methods': ['Present Model, Mix Data'],
+        'methods': ['SCM, Mix Data'],
         'legend_loc': 'upper left',
         'save_results_csv': True,
         'show_plot': True,
@@ -799,7 +799,7 @@ SPEC_CONFIGS = [
     },
 
     {
-        'methods': ['Present Model, Mix Data'],
+        'methods': ['SCM, Mix Data'],
         'legend_loc': 'upper left',
         'save_results_csv': True,
         'show_plot': True,
@@ -842,7 +842,7 @@ SPEC_CONFIGS = [
     },
     
     # {
-    #     'methods': ['Present Model', 'Present Model, Mix Data'],
+    #     'methods': ['SCM', 'SCM, Mix Data'],
     #     'legend_loc': 'upper left',
     #     'save_results_csv': True,
     #     'show_plot': True,
@@ -906,7 +906,7 @@ SPEC_CONFIGS = [
     # },
 
     # {
-    #     'methods': ['Present Model', 'Present Model, Mix Data'],
+    #     'methods': ['SCM', 'SCM, Mix Data'],
     #     'legend_loc': 'upper left',
     #     'save_results_csv': True,
     #     'show_plot': True,
@@ -938,7 +938,7 @@ SPEC_CONFIGS = [
     # },
 
     # {
-    #     'methods': ['Gheribi-KT24', 'Gheribi-KT24, Mix Data', 'Present Model', 'Present Model, Mix Data', 'Zhao-PGM', 'Zhao-PGM, Mix Data'],
+    #     'methods': ['KTM', 'KTM, Mix Data', 'SCM', 'SCM, Mix Data', 'PGM', 'PGM, Mix Data'],
     #     'legend_loc': 'upper left',
     #     'save_results_csv': True,
     #     'show_plot': True,
