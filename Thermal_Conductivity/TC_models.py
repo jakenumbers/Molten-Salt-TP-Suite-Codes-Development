@@ -498,12 +498,10 @@ def KTM_Mix(df,MSTDB_df,SCL_PDF_df,compound_input,mol_fracs,Temp_Range, V_m=0, d
     #Calculate mixture gamma
     gamma_mix_m=M_mix*alpha_mix_m*C_0_mix_m**2*(1/C_p_mix)
     
-
     #Calculate kinetic thermal conductivity
     lambda_k = np.zeros(len(T))
     for j in range(len(T)):
         lambda_k[j] = (1 + np.sum(n_i_c)/np.sum(n_i_a)) * k_B * n_dens_mix**(2/3) * C_0_mix_m * (1 - alpha_mix_m*(gamma_mix_m + 1/3)*(T[j] - T_melt))
-    
     
     #Calculate ideal thermal conductivity
     lambda_ideal = np.zeros(len(T))
