@@ -308,6 +308,36 @@ class MoltenSaltPDF:
         sigma_right = hwhm_right / sqrt_2ln2
         fwhm = hwhm_left + hwhm_right
 
+        # --- PMF slope fits for bond strength ---
+        g_safe = np.maximum(g, 1e-10)
+        k_B = 8.314462618e-3
+        pmf = -k_B * self.temp * np.log(g_safe)
+
+        # Left side: fit line from onset (where g rises above baseline) to peak
+        # Use the region from ~20% to ~80% of peak height on the left
+        left_lo_val = 0.2 * g_peak
+        left_hi_val = 0.8 * g_peak
+        left_mask = (self.x_grid < r_peak) & (g > left_lo_val) & (g < left_hi_val)
+        if np.sum(left_mask) >= 3:
+            coeffs_L = np.polyfit(self.x_grid[left_mask], pmf[left_mask], 1)
+            slope_left = coeffs_L[0]   # dW/dr on left side (negative)
+            center_left = np.mean(self.x_grid[left_mask])
+        else:
+            slope_left = None
+            center_left = None
+
+        # Right side: fit line from peak down to the minimum
+        right_lo_val = g_base + 0.2 * (g_peak - g_base)
+        right_hi_val = g_base + 0.8 * (g_peak - g_base)
+        right_mask = (self.x_grid > r_peak) & (g > right_lo_val) & (g < right_hi_val)
+        if np.sum(right_mask) >= 3:
+            coeffs_R = np.polyfit(self.x_grid[right_mask], pmf[right_mask], 1)
+            slope_right = coeffs_R[0]  # dW/dr on right side (positive)
+            center_right = np.mean(self.x_grid[right_mask])
+        else:
+            slope_right = None
+            center_right = None
+
         return {
             'r_peak': r_peak,
             'g_peak': g_peak,
@@ -317,6 +347,10 @@ class MoltenSaltPDF:
             'hwhm_left': hwhm_left,
             'hwhm_right': hwhm_right,
             'fwhm': fwhm,
+            'pmf_slope_left': slope_left,
+            'pmf_slope_right': slope_right,
+            'pmf_center_left': center_left,
+            'pmf_center_right': center_right,
         }
 
     # ------------------------------------------------------------------
@@ -353,7 +387,17 @@ class MoltenSaltPDF:
         if fit is None:
             return pmf_values, None, None
 
-        bond_strength = k_B * self.temp / (fit['sigma_left'] ** 2)
+        slope_L = fit.get('pmf_slope_left')
+        slope_R = fit.get('pmf_slope_right')
+        center_L = fit.get('pmf_center_left')
+        center_R = fit.get('pmf_center_right')
+
+        if slope_L is not None and slope_R is not None and center_R > center_L:
+            # k = change in PMF slope / change in position = d²W/dr²
+            bond_strength = (slope_R - slope_L) / (center_R - center_L)
+        else:
+            # Fallback to Gaussian σ_L method
+            bond_strength = k_B * self.temp / (fit['sigma_left'] ** 2)
         return pmf_values, bond_strength, fit['r_peak']
 
     # ------------------------------------------------------------------
@@ -1599,7 +1643,7 @@ def main():
         #   'coordination'   — coordination number mismatch
         #   'polarizability' — anion polarizability accommodation
         #   None / empty     — original concentration-only
-        b_ph_factors={'dispersion'},
+        b_ph_factors={'vdos'},
     )
 
     # --- Unary Salts (9) ---
