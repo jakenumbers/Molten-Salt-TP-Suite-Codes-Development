@@ -1151,16 +1151,16 @@ def _save_results_to_csv(melt_results: List[Dict]):
     model_columns_at_min = [f"{col} at Min Meas Temp (W/m-K)" for col in model_columns]
 
     specific_heat_columns = [
-        'GECM c_m (J/kg-K)',
-        'GECM c\' (J/kg-K²)',
-        'GECM_Mix c_m (J/kg-K)',
-        'GECM_Mix c\' (J/kg-K²)'
+        'SCM c_m (J/kg-K)',
+        'SCM c\' (J/kg-K²)',
+        'SCM_Mix c_m (J/kg-K)',
+        'SCM_Mix c\' (J/kg-K²)'
     ]
     sound_velocity_columns = [
-        'GECM v_m (m/s)',
-        'GECM v\' (m/s/K)',
-        'GECM_Mix v_m (m/s)',
-        'GECM_Mix v\' (m/s/K)'
+        'SCM v_m (m/s)',
+        'SCM v\' (m/s/K)',
+        'SCM_Mix v_m (m/s)',
+        'SCM_Mix v\' (m/s/K)'
     ]
 
     header = [
@@ -1188,18 +1188,18 @@ def _save_results_to_csv(melt_results: List[Dict]):
             res.get('tc_mstdb', ''),
             res.get('mstdb_reference', ''),
         ]
-        # Present Model fields map to GECM columns in GUI file
+        # Present Model fields map to SCM columns in GUI file
         row.extend([
-            res.get('Present Model_specific_heat_m', ''),
-            res.get('Present Model_specific_heat_prime', ''),
-            res.get('Present Model, Mix Data_specific_heat_m', ''),
-            res.get('Present Model, Mix Data_specific_heat_prime', ''),
+            res.get('SCM_specific_heat_m', ''),
+            res.get('SCM_specific_heat_prime', ''),
+            res.get('SCM, Mix Data_specific_heat_m', ''),
+            res.get('SCM, Mix Data_specific_heat_prime', ''),
         ])
         row.extend([
-            res.get('Present Model_sound_velocity_m', ''),
-            res.get('Present Model_sound_velocity_prime', ''),
-            res.get('Present Model, Mix Data_sound_velocity_m', ''),
-            res.get('Present Model, Mix Data_sound_velocity_prime', ''),
+            res.get('SCM_sound_velocity_m', ''),
+            res.get('SCM_sound_velocity_prime', ''),
+            res.get('SCM, Mix Data_sound_velocity_m', ''),
+            res.get('SCM, Mix Data_sound_velocity_prime', ''),
         ])
         rows.append(row)
 

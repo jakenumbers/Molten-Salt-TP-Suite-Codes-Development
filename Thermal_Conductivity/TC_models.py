@@ -2297,6 +2297,9 @@ def prop_lookup(method, Compound, mol_fracs):
             density_mix = [2530,-0.555]     #Janz 1974 [69]
             sound_velocity_mix = [3244,-0.787]    # 63LiF-37%NaF Minchenko, 1985
             specific_heat_mix = [125,-0.0666,'m']   # Powers 1963 [114]
+        elif Compound == ['MgCl2','KCl'] or Compound == ['KCl','MgCl2']:
+            density_mix = [1903.7,-0.552]     #Xu, 2018 https://asmedigitalcollection.asme.org/solarenergyengineering/article/140/5/051011/368304/Experimental-Test-of-Properties-of-KCl-MgCl2
+            specific_heat_mix = [874.21051,0.1046,'m']   # #Xu, 2018 https://asmedigitalcollection.asme.org/solarenergyengineering/article/140/5/051011/368304/Experimental-Test-of-Properties-of-KCl-MgCl2
         elif Compound == ['KCl','NaCl'] or Compound == ['NaCl','KCl']:
             density_mix = [2130,-0.568]     # Van Artsdalen 1955 [144]
         elif Compound == ['KCl','LiCl'] or Compound == ['LiCl','KCl']:
