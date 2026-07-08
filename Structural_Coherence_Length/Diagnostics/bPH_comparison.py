@@ -47,7 +47,7 @@ def format_label(label):
     """
     return re.sub(r'([a-zA-Z])(\d+)', r'\1$_{\2}$', label)
 
-def plot_bph_ablation_study(csv_with_bph="Structural_Coherence_Length/Diagnostics/SCL_results_with_bPH.csv", csv_no_bph="Structural_Coherence_Length/Diagnostics/SCL_results_no_bPH.csv"):
+def plot_bph_ablation_study(csv_with_bph="Structural_Coherence_Length/Diagnostics/SCL_results_with_bPH.csv", csv_no_bph="Structural_Coherence_Length/Diagnostics/SCL_results_pen_bPH.csv"):
     """
     Plots a grouped bar chart comparing the model deviation with and without b_PH.
     """
@@ -118,7 +118,7 @@ def plot_bph_ablation_study(csv_with_bph="Structural_Coherence_Length/Diagnostic
         complexity = get_sort_key(raw_label)[1] # Complexity is the 2nd item in the sort key tuple
         
         lbl_bph = r"w/ $b_{PH}$"
-        lbl_nobph = r"w/o $b_{PH}$"
+        lbl_nobph = r"pen $b_{PH}$"
         
         if complexity == 1:
             # UNARY SALTS: Plot a single bar centered on the tick mark
@@ -196,7 +196,7 @@ def plot_bph_ablation_study(csv_with_bph="Structural_Coherence_Length/Diagnostic
             ax.hlines(mean_bph, xmin=x_min, xmax=x_max, color='tab:blue', linestyle='-.', linewidth=2, alpha=0.9, zorder=4)
             ax.text(x_max - 0.1, mean_bph + 1.5, f'{mean_bph:.1f}%', color='tab:blue', fontsize=10, ha='right', va='bottom', fontweight='bold')
         
-        # Calculate and draw Average Bias for w/o bPH (Only for mixtures)
+        # Calculate and draw Average Bias for pen bPH (Only for mixtures)
         mixtures_mask = group_df[comp_col].apply(lambda c: get_sort_key(c)[1] > 1)
         if mixtures_mask.any():
             if g == "Actinide":
@@ -232,7 +232,7 @@ def plot_bph_ablation_study(csv_with_bph="Structural_Coherence_Length/Diagnostic
     
     custom_lines = [
         Line2D([0], [0], color='tab:blue', lw=2, linestyle='-.', label=r'Avg Bias (w/ $b_{PH}$)'),
-        Line2D([0], [0], color='tab:red', lw=2, linestyle='-.', label=r'Avg Bias (w/o $b_{PH}$)')
+        Line2D([0], [0], color='tab:red', lw=2, linestyle='-.', label=r'Avg Bias (pen $b_{PH}$)')
     ]
     
     # Filter out empty string labels
@@ -257,7 +257,7 @@ def plot_bph_ablation_study(csv_with_bph="Structural_Coherence_Length/Diagnostic
     # Pushes the bottom margin up slightly so the group labels aren't cut off
     plt.subplots_adjust(bottom=0.25) 
     
-    output_filename = 'SCL_Summary_Deviation_bPH_Comparison_Sorted.eps'
+    output_filename = 'SCL_Summary_Deviation_bPH_Comparison_Sorted.png'
     plt.savefig(output_filename, bbox_inches='tight')
     print(f"Saved comparison plot to {output_filename}")
     plt.show()

@@ -93,5 +93,5 @@ ax.legend(new_handles, new_labels, loc='upper right', bbox_to_anchor=(0.98, 0.98
 # Add "FLiNaK" label to the top left corner
 ax.text(0.08, 0.9, 'FLiNaK', transform=ax.transAxes, fontsize=16, fontweight='bold', va='top', ha='left')
 
-plt.savefig("flinak_tc_grouped_final_updated.eps", bbox_inches="tight")
+plt.savefig("flinak_tc", bbox_inches="tight")
 plt.show()

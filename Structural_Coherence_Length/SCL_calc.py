@@ -581,6 +581,110 @@ class MoltenSaltPDF:
                     row += f"  {s:8.3f}"
                 print(row)
 
+    # ------------------------------------------------------------------
+    # Penalty-based similarity
+    # ------------------------------------------------------------------
+    def _compute_penalty_similarity(self):
+        """Compute pairwise S_ij using mass penalty, bond penalty, and polarizability.
+
+        m_p = |m_c1 - m_c2| / mean(m_c1, m_c2)    (relative cation mass mismatch)
+        K_p = |k'_1 - k'_2| / mean(k'_1, k'_2)    (relative bond stiffness mismatch)
+            where k' = -ln(1 - b_KF),  b_KF = 1 - (g_peak - g_min) / g_peak
+        P   = anion polarizability (Å³)
+
+        S_ij = exp(-(m_p² + K_p²) / P)
+        """
+        ca_pairs = [p for p in self.ion_pairs.values() if p.type == 'ca']
+        ca_names = [p.name for p in ca_pairs]
+
+        # --- Gather per-pair properties ---
+        pair_props = {}
+        for p in ca_pairs:
+            cation = p.name.split('-')[0]
+            anion = p.name.split('-')[1]
+            m_cat = element(cation).mass  # amu
+
+            # b_KF from unweighted g(r)
+            fit = self._fit_gaussian_to_peak(p.name)
+            if fit is not None and fit['g_peak'] > 1e-6:
+                b_kf = fit['g_base'] / fit['g_peak']
+            else:
+                b_kf = 0.0
+            b_kf = np.clip(b_kf, 0, 0.9999)  # avoid ln(0)
+
+            k_prime = -np.log(b_kf)
+
+            r_peak = fit['r_peak'] if fit is not None else None
+
+            # Anion polarizability
+            polar = ANION_POLAR.get(anion, 2.0)
+
+            pair_props[p.name] = {
+                'm_cat': m_cat,
+                'k_prime': k_prime,
+                'b_kf': b_kf,
+                'polar': polar,
+                'anion': anion,
+                'r_peak': r_peak,
+            }
+
+        # --- Compute pairwise S_ij ---
+        self.penalty_overlaps = {}
+        for i, a in enumerate(ca_names):
+            self.penalty_overlaps[(a, a)] = 1.0
+            for b in ca_names[i + 1:]:
+                pa, pb = pair_props[a], pair_props[b]
+
+                # Mass penalty
+                m1, m2 = pa['m_cat'], pb['m_cat']
+                m_mean = (m1 + m2) / 2.0
+                m_p = abs(m1 - m2) / m_mean if m_mean > 0 else 0.0
+
+                # Bond penalty
+                k1, k2 = pa['k_prime'], pb['k_prime']
+                k_mean = (k1 + k2) / 2.0
+                K_p = abs(k1 - k2) / k_mean if k_mean > 1e-10 else 0.0
+
+                # Anion polarizability (use the shared anion, or average)
+                if pa['anion'] == pb['anion']:
+                    P = pa['polar']
+                else:
+                    P = (pa['polar'] + pb['polar']) / 2.0
+                P = max(P, 0.01)  # prevent division by zero
+
+                # Average polarizability over radial separation
+                r_mean = (pa.get('r_peak', 0) + pb.get('r_peak', 0)) / 2.0
+                if r_mean > 0:
+                    P_factor = (P / r_mean)**3.5   
+
+                S_ij = np.exp(-(m_p ** 4 + K_p ** 3) / P_factor) #P)
+                self.penalty_overlaps[(a, b)] = S_ij
+                self.penalty_overlaps[(b, a)] = S_ij
+
+        # Print matrix
+        if len(ca_names) > 1:
+            print(f"  Penalty similarity matrix:")
+            header = "          " + "  ".join(f"{n:>8s}" for n in ca_names)
+            print(header)
+            for a in ca_names:
+                row = f"  {a:>8s}"
+                for b in ca_names:
+                    s = self.penalty_overlaps.get((a, b), 0)
+                    row += f"  {s:8.3f}"
+                print(row)
+                # Print components for off-diagonal
+                if a != ca_names[-1]:
+                    for b in ca_names:
+                        if b != a and (a, b) in self.penalty_overlaps:
+                            pa_p, pb_p = pair_props[a], pair_props[b]
+                            m1, m2 = pa_p['m_cat'], pb_p['m_cat']
+                            mp = abs(m1 - m2) / ((m1 + m2) / 2)
+                            k1, k2 = pa_p['k_prime'], pb_p['k_prime']
+                            km = (k1 + k2) / 2
+                            Kp = abs(k1 - k2) / km if km > 1e-10 else 0
+                            P = pa_p['polar'] if pa_p['anion'] == pb_p['anion'] else (pa_p['polar'] + pb_p['polar']) / 2
+                            print(f"    {a}-{b}: m_p={mp:.3f}, K_p={Kp:.3f}, P={P:.2f}")
+
     # ==================================================================
     # DISPERSION-BASED PHONON TRANSFER
     # ==================================================================
@@ -764,6 +868,29 @@ class MoltenSaltPDF:
                 row += f"  {s:8.3f}"
             print(row)
 
+    def _calculate_penalty_b_ph(self, pair_name, ca_pairs, sum_ca_weights):
+        """b_PH using penalty-based similarity."""
+        pair = self.ion_pairs[pair_name]
+
+        if not hasattr(self, 'penalty_overlaps') or pair_name not in [p.name for p in ca_pairs]:
+            if sum_ca_weights > 0:
+                return np.clip(1 - (pair.weight / sum_ca_weights), 0, 1)
+            return 1.0
+
+        numerator = 0.0
+        denominator = 0.0
+        for other in ca_pairs:
+            x_j = other.weight
+            S_ij = self.penalty_overlaps.get((pair_name, other.name), 0)
+            if other.name == pair_name:
+                S_ij = 1.0
+            numerator += x_j * S_ij
+            denominator += x_j
+
+        if denominator <= 0:
+            return 1.0
+        return np.clip(1.0 - numerator / denominator, 0, 1)
+
     @staticmethod
     def _transfer_fraction(source, target):
         """Fraction of source's q-window frequencies that fall in target's allowed bands.
@@ -848,6 +975,7 @@ class MoltenSaltPDF:
             'coordination'   — coordination geometry match G_ij
             'polarizability' — anion polarizability accommodation p_a
             'no_bPH'           — forces b_PH = 0 (no phase difference disruption)
+            'penalty'        — mass + bond penalty + polarizability S_ij 
 
         If no factors selected (empty set), falls back to original
         concentration-only formula.
@@ -870,7 +998,7 @@ class MoltenSaltPDF:
         use_vdos = 'vdos' in factors and not use_dispersion
         use_coord = 'coordination' in factors
         use_polar = 'polarizability' in factors
-
+        use_penalty = 'penalty' in factors
         numerator = 0.0
         denominator = 0.0
 
@@ -885,6 +1013,10 @@ class MoltenSaltPDF:
                 S_ij = self.dispersion_overlaps.get((pair_name, other.name), 0)
             elif use_vdos:
                 S_ij = self.vdos_overlaps.get((pair_name, other.name), 0)
+                if pair_name == other.name:
+                    S_ij = 1.0
+            elif use_penalty:
+                S_ij = self.penalty_overlaps.get((pair_name, other.name), 0)
                 if pair_name == other.name:
                     S_ij = 1.0
             else:
@@ -919,6 +1051,10 @@ class MoltenSaltPDF:
 
         # Pre-compute overlaps / coordination as needed
         self._compute_vdos_overlaps()
+
+        # Compute penalty similarity if selected
+        if 'penalty' in self.b_ph_factors:
+            self._compute_penalty_similarity()
 
         if 'dispersion' in self.b_ph_factors:
             self._compute_dispersion_overlaps()
@@ -1196,7 +1332,7 @@ class MoltenSaltPDF:
                 xe = self.x_grid[s1] if s1 < len(self.x_grid) else self.x_grid[-1]
                 bw = self.x_grid[step_idx[si + 1]] - xs if si < len(step_idx) - 2 else xe - xs
                 sv = S_i[s0]
-                alpha = 0.1 + 0.45 * sv
+                alpha = min(1.0, 0.1 + 0.45 * sv)
                 plt.bar((xs + xe) / 2, sv, width=bw, color=color, alpha=alpha * 0.6,
                         edgecolor='none', align='center', zorder=0)
             plt.plot(self.x_grid, S_i, label=f"S(r): {ip}", color=color, linestyle='dotted')
@@ -1710,66 +1846,69 @@ def main():
         #   'coordination'   — coordination number mismatch
         #   'polarizability' — anion polarizability accommodation
         #   'no_bPH'           — forces b_PH = 0 (no phase difference disruption)
+        #   'penalty'        — mass, bond, and polarizability penalty (default)
         #   None / empty     — original concentration-only
-        b_ph_factors={},
+        b_ph_factors={'penalty'},
     )
 
-    # # --- Unary Salts (9) ---
-    # analyzer.add_molten_salt(_prep_path("1.0LiF", 'Walz, 2019', 1121), "1.0LiF", 'Walz, 2019', 1121, 3.28553)
-    # analyzer.add_molten_salt(_prep_path("1.0NaF", 'Walz, 2019', 1266), "1.0NaF", 'Walz, 2019', 1266, 5.22361)
-    # analyzer.add_molten_salt(_prep_path("1.0KF", 'Walz, 2019', 1131), "1.0KF", 'Walz, 2019', 1131, 4.63533)
-    # analyzer.add_molten_salt(_prep_path("1.0LiCl", 'Walz, 2019', 878), "1.0LiCl", 'Walz, 2019', 878, 4.10511)
-    # analyzer.add_molten_salt(_prep_path("1.0NaCl", 'Lu, 2021', 1200), "1.0NaCl", 'Lu, 2021', 1200, 4.48028)
-    # analyzer.add_molten_salt(_prep_path("1.0KCl", 'Walz, 2019', 1043), "1.0KCl", 'Walz, 2019', 1043, 4.47675)
-    # analyzer.add_molten_salt(_prep_path("1.0KCl", 'Walker, 2026', 1043), "1.0KCl", 'Walker, 2026', 1043, 4.47675)
-    # analyzer.add_molten_salt(_prep_path("1.0MgCl2", 'Roy, 2021', 1073), "1.0MgCl2", 'Roy, 2021', 1073, 4.76796)
-    # analyzer.add_molten_salt(_prep_path("1.0MgCl2", 'Walker, 2026', 987), "1.0MgCl2", 'Walker, 2026', 987, 4.76796)
-    # analyzer.add_molten_salt(_prep_path("1.0CaCl2", 'Bu, 2021', 1100), "1.0CaCl2", 'Bu, 2021', 1100, 7.72598)
-    # analyzer.add_molten_salt(_prep_path("1.0SrCl2", 'McGreevy, 1987', 1198), "1.0SrCl2", 'McGreevy, 1987', 1198, 6.408743)
+    # --- Unary Salts (11) ---
+    analyzer.add_molten_salt(_prep_path("1.0LiF", 'Walz, 2019', 1121), "1.0LiF", 'Walz, 2019', 1121, 3.28553)
+    analyzer.add_molten_salt(_prep_path("1.0NaF", 'Walz, 2019', 1266), "1.0NaF", 'Walz, 2019', 1266, 5.22361)
+    analyzer.add_molten_salt(_prep_path("1.0KF", 'Walz, 2019', 1131), "1.0KF", 'Walz, 2019', 1131, 4.63533)
+    analyzer.add_molten_salt(_prep_path("1.0LiCl", 'Walz, 2019', 878), "1.0LiCl", 'Walz, 2019', 878, 4.10511)
+    analyzer.add_molten_salt(_prep_path("1.0NaCl", 'Lu, 2021', 1200), "1.0NaCl", 'Lu, 2021', 1200, 4.48028)
+    analyzer.add_molten_salt(_prep_path("1.0KCl", 'Walz, 2019', 1043), "1.0KCl", 'Walz, 2019', 1043, 4.47675)
+    analyzer.add_molten_salt(_prep_path("1.0KCl", 'Walker, 2026', 1043), "1.0KCl", 'Walker, 2026', 1043, 4.47675)
+    analyzer.add_molten_salt(_prep_path("1.0MgCl2", 'Roy, 2021', 1073), "1.0MgCl2", 'Roy, 2021', 1073, 4.76796)
+    analyzer.add_molten_salt(_prep_path("1.0MgCl2", 'Walker, 2026', 987), "1.0MgCl2", 'Walker, 2026', 987, 4.76796)
+    analyzer.add_molten_salt(_prep_path("1.0CaCl2", 'Bu, 2021', 1100), "1.0CaCl2", 'Bu, 2021', 1100, 7.72598)
+    analyzer.add_molten_salt(_prep_path("1.0SrCl2", 'McGreevy, 1987', 1198), "1.0SrCl2", 'McGreevy, 1987', 1198, 6.408743)
 
-    # # --- Mixtures (16) ---
-    # analyzer.add_molten_salt(_prep_path("0.6LiF-0.4NaF", 'Grizzi, 2024', 1473), "0.6LiF-0.4NaF", 'Grizzi, 2024', 1473, 2.63857)
-    # analyzer.add_molten_salt(_prep_path("0.5LiF-0.5BeF2", 'Sun, 2024', 900), "0.5LiF-0.5BeF2", 'Sun, 2024', 900, 0)
-    # analyzer.add_molten_salt(_prep_path("0.66LiF-0.34BeF2", 'Fayfar, 2024', 973), "0.66LiF-0.34BeF2", 'Fayfar, 2024', 973, 1.90187)
-    # analyzer.add_molten_salt(_prep_path("0.66LiF-0.34BeF2", 'Yin, 2025', 973), "0.66LiF-0.34BeF2", 'Yin, 2025', 973, 1.90187)
-    # analyzer.add_molten_salt(_prep_path("0.32MgCl2-0.68KCl", 'Walker, 2026', 723), "0.32MgCl2-0.68KCl", 'Walker, 2026', 723, 3.91988)
-    # analyzer.add_molten_salt(_prep_path("0.5LiCl-0.5KCl", 'Jiang, 2016', 727), "0.5LiCl-0.5KCl", 'Jiang, 2016', 727, 0)
-    # analyzer.add_molten_salt(_prep_path("0.637LiCl-0.363KCl", 'Jiang, 2016', 750), "0.637LiCl-0.363KCl", 'Jiang, 2016', 750, 0)
-    # analyzer.add_molten_salt(_prep_path("0.5NaCl-0.5KCl", 'Manga, 2014', 1100), "0.5NaCl-0.5KCl", 'Manga, 2014', 1100, 4.32778)
-    # analyzer.add_molten_salt(_prep_path("0.5NaCl-0.5KCl", 'Walker, 2026', 1100), "0.5NaCl-0.5KCl", 'Walker, 2026', 1100, 4.32778)
-    # analyzer.add_molten_salt(_prep_path("0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073), "0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073, 0)
-    # analyzer.add_molten_salt(_prep_path("0.4903NaCl-0.5097CaCl2", 'Wei, 2022', 1023), "0.4903NaCl-0.5097CaCl2", 'Wei, 2022', 1023, 3.76913)
-    # analyzer.add_molten_salt(_prep_path("0.718KCl-0.282CaCl2", 'Wei, 2022', 1300), "0.718KCl-0.282CaCl2", 'Wei, 2022', 1300, 0)
-    # analyzer.add_molten_salt(_prep_path("0.465LiF-0.115NaF-0.42KF", 'Frandsen, 2020', 873), "0.465LiF-0.115NaF-0.42KF", 'Frandsen, 2020', 873, 2.26059)
-    # analyzer.add_molten_salt(_prep_path("0.345NaF-0.59KF-0.065MgF2", 'Solano, 2021', 1073), "0.345NaF-0.59KF-0.065MgF2", 'Solano, 2021', 1073, 3.92263)
-    # analyzer.add_molten_salt(_prep_path("0.45MgCl2-0.33NaCl-0.22KCl", 'Jiang, 2024', 750), "0.45MgCl2-0.33NaCl-0.22KCl", 'Jiang, 2024', 750, 0)
+    # --- Mixtures (16) ---
+    analyzer.add_molten_salt(_prep_path("0.6LiF-0.4NaF", 'Grizzi, 2024', 1473), "0.6LiF-0.4NaF", 'Grizzi, 2024', 1473, 2.63857)
+    analyzer.add_molten_salt(_prep_path("0.5LiF-0.5BeF2", 'Sun, 2024', 900), "0.5LiF-0.5BeF2", 'Sun, 2024', 900, 0)
+    analyzer.add_molten_salt(_prep_path("0.66LiF-0.34BeF2", 'Fayfar, 2024', 973), "0.66LiF-0.34BeF2", 'Fayfar, 2024', 973, 1.90187)
+    analyzer.add_molten_salt(_prep_path("0.66LiF-0.34BeF2", 'Yin, 2025', 973), "0.66LiF-0.34BeF2", 'Yin, 2025', 973, 1.90187)
+    analyzer.add_molten_salt(_prep_path("0.32MgCl2-0.68KCl", 'Walker, 2026', 723), "0.32MgCl2-0.68KCl", 'Walker, 2026', 723, 3.91988)
+    analyzer.add_molten_salt(_prep_path("0.5LiCl-0.5KCl", 'Jiang, 2016', 727), "0.5LiCl-0.5KCl", 'Jiang, 2016', 727, 0)
+    analyzer.add_molten_salt(_prep_path("0.637LiCl-0.363KCl", 'Jiang, 2016', 750), "0.637LiCl-0.363KCl", 'Jiang, 2016', 750, 0)
+    analyzer.add_molten_salt(_prep_path("0.5NaCl-0.5KCl", 'Manga, 2014', 1100), "0.5NaCl-0.5KCl", 'Manga, 2014', 1100, 4.32778)
+    analyzer.add_molten_salt(_prep_path("0.5NaCl-0.5KCl", 'Walker, 2026', 1100), "0.5NaCl-0.5KCl", 'Walker, 2026', 1100, 4.32778)
+    analyzer.add_molten_salt(_prep_path("0.6NaCl-0.4KCl", 'Walker, 2026', 1100), "0.6NaCl-0.4KCl", 'Walker, 2026', 1100, 4.32778)
+    analyzer.add_molten_salt(_prep_path("0.3NaCl-0.7KCl", 'Walker, 2026', 1100), "0.3NaCl-0.7KCl", 'Walker, 2026', 1100, 4.32778)
+    analyzer.add_molten_salt(_prep_path("0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073), "0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073, 0)
+    analyzer.add_molten_salt(_prep_path("0.4903NaCl-0.5097CaCl2", 'Wei, 2022', 1023), "0.4903NaCl-0.5097CaCl2", 'Wei, 2022', 1023, 3.76913)
+    analyzer.add_molten_salt(_prep_path("0.718KCl-0.282CaCl2", 'Wei, 2022', 1300), "0.718KCl-0.282CaCl2", 'Wei, 2022', 1300, 0)
+    analyzer.add_molten_salt(_prep_path("0.465LiF-0.115NaF-0.42KF", 'Frandsen, 2020', 873), "0.465LiF-0.115NaF-0.42KF", 'Frandsen, 2020', 873, 2.26059)
+    analyzer.add_molten_salt(_prep_path("0.345NaF-0.59KF-0.065MgF2", 'Solano, 2021', 1073), "0.345NaF-0.59KF-0.065MgF2", 'Solano, 2021', 1073, 3.92263)
+    analyzer.add_molten_salt(_prep_path("0.45MgCl2-0.33NaCl-0.22KCl", 'Jiang, 2024', 750), "0.45MgCl2-0.33NaCl-0.22KCl", 'Jiang, 2024', 750, 0)
     analyzer.add_molten_salt(_prep_path("0.38MgCl2-0.21NaCl-0.41KCl", 'Jiang, 2024', 750), "0.38MgCl2-0.21NaCl-0.41KCl", 'Jiang, 2024', 750, 3.65358)
     analyzer.add_molten_salt(_prep_path("0.38MgCl2-0.21NaCl-0.41KCl", 'Walker, 2026', 660), "0.38MgCl2-0.21NaCl-0.41KCl", 'Walker, 2026', 660, 3.65358)    
-    # analyzer.add_molten_salt(_prep_path("0.417NaCl-0.525CaCl2-0.058KCl", 'Wei, 2022', 1023), "0.417NaCl-0.525CaCl2-0.058KCl", 'Wei, 2022', 1023, 0)
-    # analyzer.add_molten_salt(_prep_path("0.535NaCl-0.315MgCl2-0.15CaCl2", 'Wei, 2022', 1023), "0.535NaCl-0.315MgCl2-0.15CaCl2", 'Wei, 2022', 1023, 3.52027)
+    analyzer.add_molten_salt(_prep_path("0.417NaCl-0.525CaCl2-0.058KCl", 'Wei, 2022', 1023), "0.417NaCl-0.525CaCl2-0.058KCl", 'Wei, 2022', 1023, 0)
+    analyzer.add_molten_salt(_prep_path("0.535NaCl-0.315MgCl2-0.15CaCl2", 'Wei, 2022', 1023), "0.535NaCl-0.315MgCl2-0.15CaCl2", 'Wei, 2022', 1023, 3.52027)
 
-    # # --- Actinides (15) ---
-    # analyzer.add_molten_salt(_prep_path("1.0ThF4", 'Dai, 2015', 1633), "1.0ThF4", 'Dai, 2015', 1633, 0)
-    # analyzer.add_molten_salt(_prep_path("1.0UF4", 'OcadizFlores, 2021', 1357), "1.0UF4", 'OcadizFlores, 2021', 1357, 0)
-    # analyzer.add_molten_salt(_prep_path("0.64NaCl-0.36UCl3", 'Andersson, 2022', 1250), "0.64NaCl-0.36UCl3", 'Andersson, 2022', 1250, 2.5393)
-    # analyzer.add_molten_salt(_prep_path("0.85KCl-0.15UCl3", 'Andersson, 2024', 1250), "0.85KCl-0.15UCl3", 'Andersson, 2024', 1250, 0)
-    # analyzer.add_molten_salt(_prep_path("0.75KCl-0.25UCl3", 'Andersson, 2024', 1250), "0.75KCl-0.25UCl3", 'Andersson, 2024', 1250, 0)
-    # analyzer.add_molten_salt(_prep_path("0.65KCl-0.35UCl3", 'Andersson, 2024', 1250), "0.65KCl-0.35UCl3", 'Andersson, 2024', 1250, 0)
-    # analyzer.add_molten_salt(_prep_path("0.5KCl-0.5UCl3", 'Andersson, 2024', 1250), "0.5KCl-0.5UCl3", 'Andersson, 2024', 1250, 0)
-    # analyzer.add_molten_salt(_prep_path("0.625LiF-0.3125BeF2-0.0625ThF4", 'Yin, 2025', 973), "0.625LiF-0.3125BeF2-0.0625ThF4", 'Yin, 2025', 973, 0)
-    # analyzer.add_molten_salt(_prep_path("0.60LiF-0.30BeF2-0.10ThF4", 'Yin, 2025', 973), "0.60LiF-0.30BeF2-0.10ThF4", 'Yin, 2025', 973, 0)
-    # analyzer.add_molten_salt(_prep_path("0.5455LiF-0.2727BeF2-0.1818ThF4", 'Yin, 2025', 973), "0.5455LiF-0.2727BeF2-0.1818ThF4", 'Yin, 2025', 973, 0)
-    # analyzer.add_molten_salt(_prep_path("0.5454LiF-0.3636NaF-0.091UF4", 'Grizzi, 2024', 1473), "0.5454LiF-0.3636NaF-0.091UF4", 'Grizzi, 2024', 1473, 0)
-    # analyzer.add_molten_salt(_prep_path("0.78NaF-0.22UF4", '900K-AIMD-Zhang, 2026', 900), "0.78NaF-0.22UF4", '900K-AIMD-Zhang, 2026', 900, 0)
-    # analyzer.add_molten_salt(_prep_path("0.78NaF-0.22UF4", '900K-CMD-Zhang, 2026', 900), "0.78NaF-0.22UF4", '900K-CMD-Zhang, 2026', 900, 0)
-    # analyzer.add_molten_salt(_prep_path("0.78NaF-0.22UF4", '1000K-CMD-Zhang, 2026', 1000), "0.78NaF-0.22UF4", '1000K-CMD-Zhang, 2026', 1000, 0)
-    # analyzer.add_molten_salt(_prep_path("0.78NaF-0.22UF4", '1100K-CMD-Zhang, 2026', 1100), "0.78NaF-0.22UF4", '1100K-CMD-Zhang, 2026', 1100, 0)
-    # analyzer.add_molten_salt(_prep_path("0.78NaF-0.22UF4", '1200K-CMD-Zhang, 2026', 1200), "0.78NaF-0.22UF4", '1200K-CMD-Zhang, 2026', 1200, 0)
-    # analyzer.add_molten_salt(_prep_path("0.57NaF-0.16KF-0.27UF4", '900K-AIMD-Zhang, 2026', 900), "0.57NaF-0.16KF-0.27UF4", '900K-AIMD-Zhang, 2026', 900, 0)
-    # analyzer.add_molten_salt(_prep_path("0.57NaF-0.16KF-0.27UF4", '1000K-AIMD-Zhang, 2026', 1000), "0.57NaF-0.16KF-0.27UF4", '1000K-AIMD-Zhang, 2026', 1000, 0)
-    # analyzer.add_molten_salt(_prep_path("0.57NaF-0.16KF-0.27UF4", '1100K-AIMD-Zhang, 2026', 1100), "0.57NaF-0.16KF-0.27UF4", '1100K-AIMD-Zhang, 2026', 1100, 0)
-    # analyzer.add_molten_salt(_prep_path("0.57NaF-0.16KF-0.27UF4", '1200K-AIMD-Zhang, 2026', 1200), "0.57NaF-0.16KF-0.27UF4", '1200K-AIMD-Zhang, 2026', 1200, 0)
-    # analyzer.add_molten_salt(_prep_path("0.63NaCl-0.37UCl3", 'AIMD-Zhang, 2026', 1100), "0.63NaCl-0.37UCl3", 'AIMD-Zhang, 2026', 1100, 0)
+    # --- Actinides (15) ---
+    analyzer.add_molten_salt(_prep_path("1.0ThF4", 'Dai, 2015', 1633), "1.0ThF4", 'Dai, 2015', 1633, 0)
+    analyzer.add_molten_salt(_prep_path("1.0UF4", 'OcadizFlores, 2021', 1357), "1.0UF4", 'OcadizFlores, 2021', 1357, 0)
+    analyzer.add_molten_salt(_prep_path("0.64NaCl-0.36UCl3", 'Andersson, 2022', 1250), "0.64NaCl-0.36UCl3", 'Andersson, 2022', 1250, 2.5393)
+    analyzer.add_molten_salt(_prep_path("0.85KCl-0.15UCl3", 'Andersson, 2024', 1250), "0.85KCl-0.15UCl3", 'Andersson, 2024', 1250, 0)
+    analyzer.add_molten_salt(_prep_path("0.75KCl-0.25UCl3", 'Andersson, 2024', 1250), "0.75KCl-0.25UCl3", 'Andersson, 2024', 1250, 0)
+    analyzer.add_molten_salt(_prep_path("0.65KCl-0.35UCl3", 'Andersson, 2024', 1250), "0.65KCl-0.35UCl3", 'Andersson, 2024', 1250, 0)
+    analyzer.add_molten_salt(_prep_path("0.5KCl-0.5UCl3", 'Andersson, 2024', 1250), "0.5KCl-0.5UCl3", 'Andersson, 2024', 1250, 0)
+    analyzer.add_molten_salt(_prep_path("0.625LiF-0.3125BeF2-0.0625ThF4", 'Yin, 2025', 973), "0.625LiF-0.3125BeF2-0.0625ThF4", 'Yin, 2025', 973, 0)
+    analyzer.add_molten_salt(_prep_path("0.60LiF-0.30BeF2-0.10ThF4", 'Yin, 2025', 973), "0.60LiF-0.30BeF2-0.10ThF4", 'Yin, 2025', 973, 0)
+    analyzer.add_molten_salt(_prep_path("0.5455LiF-0.2727BeF2-0.1818ThF4", 'Yin, 2025', 973), "0.5455LiF-0.2727BeF2-0.1818ThF4", 'Yin, 2025', 973, 0)
+    analyzer.add_molten_salt(_prep_path("0.5454LiF-0.3636NaF-0.091UF4", 'Grizzi, 2024', 1473), "0.5454LiF-0.3636NaF-0.091UF4", 'Grizzi, 2024', 1473, 0)
+    analyzer.add_molten_salt(_prep_path("0.78NaF-0.22UF4", '900K-AIMD-Zhang, 2026', 900), "0.78NaF-0.22UF4", '900K-AIMD-Zhang, 2026', 900, 0)
+    analyzer.add_molten_salt(_prep_path("0.78NaF-0.22UF4", '900K-CMD-Zhang, 2026', 900), "0.78NaF-0.22UF4", '900K-CMD-Zhang, 2026', 900, 0)
+    analyzer.add_molten_salt(_prep_path("0.78NaF-0.22UF4", '1000K-CMD-Zhang, 2026', 1000), "0.78NaF-0.22UF4", '1000K-CMD-Zhang, 2026', 1000, 0)
+    analyzer.add_molten_salt(_prep_path("0.78NaF-0.22UF4", '1100K-CMD-Zhang, 2026', 1100), "0.78NaF-0.22UF4", '1100K-CMD-Zhang, 2026', 1100, 0)
+    analyzer.add_molten_salt(_prep_path("0.78NaF-0.22UF4", '1200K-CMD-Zhang, 2026', 1200), "0.78NaF-0.22UF4", '1200K-CMD-Zhang, 2026', 1200, 0)
+    analyzer.add_molten_salt(_prep_path("0.57NaF-0.16KF-0.27UF4", '900K-AIMD-Zhang, 2026', 900), "0.57NaF-0.16KF-0.27UF4", '900K-AIMD-Zhang, 2026', 900, 0)
+    analyzer.add_molten_salt(_prep_path("0.57NaF-0.16KF-0.27UF4", '1000K-AIMD-Zhang, 2026', 1000), "0.57NaF-0.16KF-0.27UF4", '1000K-AIMD-Zhang, 2026', 1000, 0)
+    analyzer.add_molten_salt(_prep_path("0.57NaF-0.16KF-0.27UF4", '1100K-AIMD-Zhang, 2026', 1100), "0.57NaF-0.16KF-0.27UF4", '1100K-AIMD-Zhang, 2026', 1100, 0)
+    analyzer.add_molten_salt(_prep_path("0.57NaF-0.16KF-0.27UF4", '1200K-AIMD-Zhang, 2026', 1200), "0.57NaF-0.16KF-0.27UF4", '1200K-AIMD-Zhang, 2026', 1200, 0)
+    analyzer.add_molten_salt(_prep_path("0.63NaCl-0.37UCl3", 'AIMD-Zhang, 2026', 1100), "0.63NaCl-0.37UCl3", 'AIMD-Zhang, 2026', 1100, 0)
 
     # Run
     analyzer.analyze_all()
