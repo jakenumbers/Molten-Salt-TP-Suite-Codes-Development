@@ -257,7 +257,7 @@ def plot_bph_ablation_study(csv_with_bph="Structural_Coherence_Length/Diagnostic
     # Pushes the bottom margin up slightly so the group labels aren't cut off
     plt.subplots_adjust(bottom=0.25) 
     
-    output_filename = 'SCL_Summary_Deviation_bPH_Comparison_Sorted.png'
+    output_filename = 'Structural_Coherence_Length/SCL_Summary_Deviation_bPH_Comparison_Sorted.png'
     plt.savefig(output_filename, bbox_inches='tight')
     print(f"Saved comparison plot to {output_filename}")
     plt.show()

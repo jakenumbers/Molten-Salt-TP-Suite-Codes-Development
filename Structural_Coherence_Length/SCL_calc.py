@@ -603,6 +603,7 @@ class MoltenSaltPDF:
             cation = p.name.split('-')[0]
             anion = p.name.split('-')[1]
             m_cat = element(cation).mass  # amu
+            m_an = element(anion).mass  # amu
 
             # b_KF from unweighted g(r)
             fit = self._fit_gaussian_to_peak(p.name)
@@ -614,6 +615,8 @@ class MoltenSaltPDF:
 
             k_prime = -np.log(b_kf)
 
+            fwhm = fit['fwhm'] if fit is not None else None
+
             r_peak = fit['r_peak'] if fit is not None else None
 
             # Anion polarizability
@@ -621,11 +624,13 @@ class MoltenSaltPDF:
 
             pair_props[p.name] = {
                 'm_cat': m_cat,
+                'm_an': m_an,
                 'k_prime': k_prime,
                 'b_kf': b_kf,
                 'polar': polar,
                 'anion': anion,
                 'r_peak': r_peak,
+                'fwhm': fwhm
             }
 
         # --- Compute pairwise S_ij ---
@@ -635,10 +640,34 @@ class MoltenSaltPDF:
             for b in ca_names[i + 1:]:
                 pa, pb = pair_props[a], pair_props[b]
 
+                # Reduced mass of each pair
+                m_A, m_B, m_an = pa['m_cat'], pb['m_cat'], pa['m_an']
+                mu_A = (m_A * m_an) / (m_A + m_an)
+                mu_B = (m_B * m_an) / (m_B + m_an)
+                m_mean = (mu_A + mu_B) / 2.0
+                delta_m_rel = abs(mu_A - mu_B) / m_mean if m_mean > 0 else 0.0
+                mu_ratio = min(mu_A, mu_B) / max(mu_A, mu_B)
+
+                # Relative peak radius
+                r_A, r_B = pa.get('r_peak', 0), pb.get('r_peak', 0)
+                r_ratio = min(r_A, r_B) / max(r_A, r_B) if max(r_A, r_B) > 0 else 1.0
+                r_mean = (r_A + r_B) / 2.0
+                delta_r_rel = abs(r_A - r_B) / r_mean
+
                 # Mass penalty
                 m1, m2 = pa['m_cat'], pb['m_cat']
                 m_mean = (m1 + m2) / 2.0
                 m_p = abs(m1 - m2) / m_mean if m_mean > 0 else 0.0
+                # m_p = (27 * m1 * m2 * m_an) / ((m1 + m2 + m_an)**3)
+
+                # b_KF
+                bkf1, bkf2 = pa['b_kf'], pb['b_kf']
+                bkf_mean = (bkf1 + bkf2) / 2.0
+
+                # fwhm
+                w1, w2 = pa.get('fwhm', 0), pb.get('fwhm', 0)
+                w_mean = (w1 + w2) / 2.0
+                delta_w_rel = abs(w1 - w2) / w_mean if w_mean > 0 else 0.0
 
                 # Bond penalty
                 k1, k2 = pa['k_prime'], pb['k_prime']
@@ -655,9 +684,9 @@ class MoltenSaltPDF:
                 # Average polarizability over radial separation
                 r_mean = (pa.get('r_peak', 0) + pb.get('r_peak', 0)) / 2.0
                 if r_mean > 0:
-                    P_factor = (P / r_mean)**3.5   
+                    P_factor = P / (r_mean**3)   
 
-                S_ij = np.exp(-(m_p ** 4 + K_p ** 3) / P_factor) #P)
+                S_ij =0.591527 + 0.441744 * mu_ratio - 0.154966 * r_ratio - 0.140764 * delta_w_rel + 0.150124 * bkf_mean - 0.000231 * mu_ratio**2 + 0.155230 * mu_ratio * r_ratio - 0.039831 * mu_ratio * delta_w_rel - 0.516812 * mu_ratio * bkf_mean + 0.066882 * r_ratio**2 - 0.644435 * r_ratio * delta_w_rel + 0.399211 * r_ratio * bkf_mean + 0.484297 * delta_w_rel**2 + 0.237230 * delta_w_rel * bkf_mean - 0.133339 * bkf_mean**2          #np.exp(-(m_p**3 * K_p**2) / P_factor) #P)
                 self.penalty_overlaps[(a, b)] = S_ij
                 self.penalty_overlaps[(b, a)] = S_ij
 

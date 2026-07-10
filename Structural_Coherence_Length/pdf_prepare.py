@@ -300,6 +300,7 @@ def main():
     # # Actinides
     # prep.add('ThF4_Dai_2015_1633.0_PIM.csv', "1.0ThF4", 'Dai, 2015', 1633, apply_savgol=True)
     # prep.add('UF4_OcadizFlores_2021_1357.0_PIM.csv', "1.0UF4", 'OcadizFlores, 2021', 1357, apply_savgol=True)
+    prep.add('UCl3_Okamoto_2005_1200.0_PIM.csv', "1.0UCl3", 'Okamoto, 2005', 1200, apply_savgol=True)
     # prep.add('0.64NaCl-0.36UCl3_Andersson_2022_1250.0_AP.csv', "0.64NaCl-0.36UCl3", 'Andersson, 2022', 1250, apply_savgol=True)
     # prep.add('0.85KCl-0.15UCl3_Andersson_2024_1250.0_AP.csv', "0.85KCl-0.15UCl3", 'Andersson, 2024', 1250, apply_savgol=True)
     # prep.add('0.75KCl-0.25UCl3_Andersson_2024_1250.0_AP.csv', "0.75KCl-0.25UCl3", 'Andersson, 2024', 1250, apply_savgol=True)
