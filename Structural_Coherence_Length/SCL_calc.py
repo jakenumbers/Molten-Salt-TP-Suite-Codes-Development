@@ -684,9 +684,9 @@ class MoltenSaltPDF:
                 # Average polarizability over radial separation
                 r_mean = (pa.get('r_peak', 0) + pb.get('r_peak', 0)) / 2.0
                 if r_mean > 0:
-                    P_factor = P / (r_mean**3)   
+                    P_factor = (P / r_mean)**3   
 
-                S_ij =0.591527 + 0.441744 * mu_ratio - 0.154966 * r_ratio - 0.140764 * delta_w_rel + 0.150124 * bkf_mean - 0.000231 * mu_ratio**2 + 0.155230 * mu_ratio * r_ratio - 0.039831 * mu_ratio * delta_w_rel - 0.516812 * mu_ratio * bkf_mean + 0.066882 * r_ratio**2 - 0.644435 * r_ratio * delta_w_rel + 0.399211 * r_ratio * bkf_mean + 0.484297 * delta_w_rel**2 + 0.237230 * delta_w_rel * bkf_mean - 0.133339 * bkf_mean**2          #np.exp(-(m_p**3 * K_p**2) / P_factor) #P)
+                S_ij = np.exp(-(m_p**3 * K_p**3) / P_factor) #P)
                 self.penalty_overlaps[(a, b)] = S_ij
                 self.penalty_overlaps[(b, a)] = S_ij
 
