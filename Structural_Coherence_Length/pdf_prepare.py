@@ -290,7 +290,7 @@ def main():
     # prep.add('0.7LiCl-0.3CaCl2_Liang_2024_1073.0_RIM.csv', "0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073, apply_savgol=True)
     # prep.add('0.4903NaCl-0.5097CaCl2_Wei_2022_1023.0_RIM.csv', "0.4903NaCl-0.5097CaCl2", 'Wei, 2022', 1023, apply_savgol=True)
     # prep.add('0.718KCl-0.282CaCl2_Wei_2022_1300.0_RIM.csv', "0.718KCl-0.282CaCl2", 'Wei, 2022', 1300, apply_savgol=True)
-    # prep.add('0.465LiF-0.115NaF-0.42KF_Frandsen_2020_873.0_AP.csv', "0.465LiF-0.115NaF-0.42KF", 'Frandsen, 2020', 873, apply_savgol=True)
+    prep.add('0.465LiF-0.115NaF-0.42KF_Frandsen_2020_873.0_AP.csv', "0.465LiF-0.115NaF-0.42KF", 'Frandsen, 2020', 873, apply_savgol=True)
     # prep.add('0.345NaF-0.065MgF2-0.59KF_Solano_2021_1073.0_AP.csv', "0.345NaF-0.59KF-0.065MgF2", 'Solano, 2021', 1073, apply_savgol=True)
     # prep.add('0.45MgCl2-0.33NaCl-0.22KCl_Jiang_2024_750.0_PIM.csv', "0.45MgCl2-0.33NaCl-0.22KCl", 'Jiang, 2024', 750, apply_savgol=True)
     # prep.add('0.38MgCl2-0.21NaCl-0.41KCl_Jiang_2024_750.0_PIM.csv', "0.38MgCl2-0.21NaCl-0.41KCl", 'Jiang, 2024', 750, apply_savgol=True)
@@ -300,7 +300,7 @@ def main():
     # # Actinides
     # prep.add('ThF4_Dai_2015_1633.0_PIM.csv', "1.0ThF4", 'Dai, 2015', 1633, apply_savgol=True)
     # prep.add('UF4_OcadizFlores_2021_1357.0_PIM.csv', "1.0UF4", 'OcadizFlores, 2021', 1357, apply_savgol=True)
-    prep.add('UCl3_Okamoto_2005_1200.0_PIM.csv', "1.0UCl3", 'Okamoto, 2005', 1200, apply_savgol=True)
+    # prep.add('UCl3_Okamoto_2005_1200.0_PIM.csv', "1.0UCl3", 'Okamoto, 2005', 1200, apply_savgol=True)
     # prep.add('0.64NaCl-0.36UCl3_Andersson_2022_1250.0_AP.csv', "0.64NaCl-0.36UCl3", 'Andersson, 2022', 1250, apply_savgol=True)
     # prep.add('0.85KCl-0.15UCl3_Andersson_2024_1250.0_AP.csv', "0.85KCl-0.15UCl3", 'Andersson, 2024', 1250, apply_savgol=True)
     # prep.add('0.75KCl-0.25UCl3_Andersson_2024_1250.0_AP.csv', "0.75KCl-0.25UCl3", 'Andersson, 2024', 1250, apply_savgol=True)
