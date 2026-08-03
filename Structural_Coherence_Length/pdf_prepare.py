@@ -266,8 +266,10 @@ def main():
     # prep.add('0.718KCl-0.282CaCl2_Walker_2026_921.0_AP.csv', "0.718KCl-0.282CaCl2", 'Walker, 2026', 921, apply_savgol=True)
     # prep.add('0.5NaCl-0.5KCl_Walker_2026_1100.0_AP.csv', "0.5NaCl-0.5KCl", 'Walker, 2026', 1100, apply_savgol=True)
     # prep.add('0.21NaCl-0.41KCl-0.38MgCl2_Walker_2026_660.0_AP.csv', "0.21NaCl-0.41KCl-0.38MgCl2", 'Walker, 2026', 660, apply_savgol=True)
-    prep.add('0.3NaCl-0.7KCl_Walker_2026_1100.0_AP.csv', "0.3NaCl-0.7KCl", 'Walker, 2026', 1100, apply_savgol=True)
-    prep.add('0.6NaCl-0.4KCl_Walker_2026_1100.0_AP.csv', "0.6NaCl-0.4KCl", 'Walker, 2026', 1100, apply_savgol=True)
+    # prep.add('0.3NaCl-0.7KCl_Walker_2026_1100.0_AP.csv', "0.3NaCl-0.7KCl", 'Walker, 2026', 1100, apply_savgol=True)
+    # prep.add('0.6NaCl-0.4KCl_Walker_2026_1100.0_AP.csv', "0.6NaCl-0.4KCl", 'Walker, 2026', 1100, apply_savgol=True)
+    prep.add('0.5LiCl-0.5KCl_NumbersNVE_2026_738.0_AP.csv', "0.5LiCl-0.5KCl", 'NumbersNVE, 2026', 738, apply_savgol=True)
+    prep.add('0.5LiCl-0.5KCl_NumbersNVT_2026_738.0_AP.csv', "0.5LiCl-0.5KCl", 'NumbersNVT, 2026', 738, apply_savgol=True)
 
     # # Unary Salts
     # prep.add('LiF_Walz_2019_1121.0_PIM.csv', "1.0LiF", 'Walz, 2019', 1121, apply_savgol=True)

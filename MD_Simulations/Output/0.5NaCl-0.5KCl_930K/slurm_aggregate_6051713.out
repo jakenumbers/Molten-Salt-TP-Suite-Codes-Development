@@ -1,0 +1,17 @@
+Starting aggregation for 0.5NaCl-0.5KCl at 930 K...
+--- AGGREGATING THERMAL CONDUCTIVITY FOR 0.5NaCl-0.5KCl ---
+scl: 2.994142678491847 Angstroms
+Cp: 1744338.0640718872
+alpha: 0.0003202301195060637
+Kt: 6.390847561090233 GPa
+Averaged v_s from 3 valid trials (out of 3 total): 1882.16 m/s
+
+--- FINAL RESULTS ---
+k at T_m (930.0K): 0.3277 W/(m*K)
+Gruneisen Param (gamma): 1.8034
+C_v (volumetric): 1134849.22 J/(m^3*K)
+
+--- k(T) FUNCTION ---
+k(T) = 0.3277 * [ 1 - 6.842336e-04 * (T - 930.0) ]
+Pipeline data successfully saved to k(T)_0.5NaCl-0.5KCl_930K.txt
+Aggregation complete!

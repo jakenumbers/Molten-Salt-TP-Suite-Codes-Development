@@ -1,0 +1,123 @@
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# SYSTEM PARAMETERS
+# =========================================================
+ANCHOR_TEMP_K = 703.0
+SYSTEM_NAME = '068KCl-032MgCl2'
+
+# Atom Counts
+n_k = 73
+n_mg = 35
+n_cl = 143
+total_atoms = 251
+Structure Base = Fluorite
+
+--- PHASE 0: GEOMETRY OPTIMIZATION ---
+      Step     Time          Energy          fmax
+FIRE:    0 13:10:25     -738.474792        3.541411
+FIRE:    1 13:10:25     -743.373901        3.549287
+FIRE:    2 13:10:32     -748.135559        3.542947
+FIRE:    3 13:10:32     -752.770569        3.521509
+FIRE:    4 13:10:33     -757.286133        3.484262
+FIRE:    5 13:10:34     -761.687439        3.430700
+FIRE:    6 13:10:34     -765.977295        3.360550
+FIRE:    7 13:10:34     -770.157532        3.273816
+FIRE:    8 13:10:34     -774.229309        3.170860
+FIRE:    9 13:10:34     -778.191650        3.052472
+FIRE:   10 13:10:34     -782.043213        2.919977
+FIRE:   11 13:10:34     -785.782471        2.845767
+FIRE:   12 13:10:34     -789.407471        2.874445
+FIRE:   13 13:10:34     -792.915466        2.895716
+FIRE:   14 13:10:34     -796.304321        2.907988
+FIRE:   15 13:10:34     -799.572144        2.909077
+FIRE:   16 13:10:34     -802.718384        2.896124
+FIRE:   17 13:10:34     -805.742737        2.865612
+FIRE:   18 13:10:34     -808.645691        2.813369
+FIRE:   19 13:10:35     -811.429443        2.734768
+FIRE:   20 13:10:35     -814.097351        2.625163
+FIRE:   21 13:10:35     -816.653381        2.480722
+FIRE:   22 13:10:35     -819.100342        2.299842
+FIRE:   23 13:10:35     -821.443359        2.085317
+FIRE:   24 13:10:35     -823.685486        1.982895
+FIRE:   25 13:10:35     -825.829651        1.907528
+FIRE:   26 13:10:35     -827.878845        1.816503
+FIRE:   27 13:10:35     -829.835205        1.744574
+FIRE:   28 13:10:35     -831.702576        1.752188
+FIRE:   29 13:10:35     -833.484131        1.755646
+FIRE:   30 13:10:35     -835.183960        1.753021
+FIRE:   31 13:10:35     -836.805237        1.741261
+FIRE:   32 13:10:35     -838.349792        1.715910
+FIRE:   33 13:10:35     -839.820312        1.702690
+FIRE:   34 13:10:35     -841.219849        1.766774
+FIRE:   35 13:10:35     -842.554749        1.809926
+FIRE:   36 13:10:35     -843.829651        1.821006
+FIRE:   37 13:10:35     -845.047302        1.785183
+FIRE:   38 13:10:35     -846.209717        1.682784
+FIRE:   39 13:10:35     -847.314270        1.488526
+FIRE:   40 13:10:35     -848.356262        1.173213
+FIRE:   41 13:10:35     -849.332581        1.148169
+FIRE:   42 13:10:35     -850.241211        1.413638
+FIRE:   43 13:10:35     -851.087097        1.584193
+FIRE:   44 13:10:35     -851.884399        1.784589
+FIRE:   45 13:10:35     -852.654907        2.273671
+FIRE:   46 13:10:35     -853.418823        2.472745
+FIRE:   47 13:10:35     -854.181458        2.474000
+FIRE:   48 13:10:35     -854.928650        2.140942
+FIRE:   49 13:10:35     -855.638489        1.605837
+FIRE:   50 13:10:35     -856.302063        1.795025
+FIRE:   51 13:10:35     -856.930542        2.017119
+FIRE:   52 13:10:35     -857.541016        1.974012
+FIRE:   53 13:10:36     -858.142700        1.766143
+FIRE:   54 13:10:36     -858.732300        1.431361
+FIRE:   55 13:10:36     -859.299988        0.952845
+
+--- PHASE 1: 2500K MELT ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_cp_pipeline.py:176: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=2500)
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+Restoring true Lithium mass (6.94 amu) for valid dynamic calculation...
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_cp_pipeline.py:216: FutureWarning: NPT thermostat has been moved/renamed to ase.md.melchionna.MelchionnaNPT. Please use this class instead (or a newer NPT thermostat!)
+  dyn_npt = NPT(atoms, timestep=1.0 * units.fs, temperature_K=temperatures[0], externalstress=p_ext,
+
+--- SWEEP: 1203.0K ---
+Equilibrating at 1203.0K for 20 ps...
+Production at 1203.0K for 50 ps...
+
+--- SWEEP: 1103.0K ---
+Equilibrating at 1103.0K for 20 ps...
+Production at 1103.0K for 50 ps...
+
+--- SWEEP: 1003.0K ---
+Equilibrating at 1003.0K for 20 ps...
+Production at 1003.0K for 50 ps...
+
+--- SWEEP: 903.0K ---
+Equilibrating at 903.0K for 20 ps...
+Production at 903.0K for 50 ps...
+
+--- SWEEP: 803.0K ---
+Equilibrating at 803.0K for 20 ps...
+Production at 803.0K for 50 ps...
+
+--- SWEEP: 703.0K ---
+Equilibrating at 703.0K for 20 ps...
+Production at 703.0K for 50 ps...
+
+MD Sweep Complete! Starting Analysis...
+
+Plots saved to '068KCl-032MgCl2_Heat_Capacity_Results.png'.
+
+# =========================================================
+# FINAL THERMODYNAMIC PROPERTIES
+# =========================================================
+Target Anchor Temperature (Tm): 703.0 K
+Volumetric Cp at 703.0 K: 1.68e+06 J/(m^3*K)
+Volumetric Thermal Expansion (α) at 703.0 K: 2.83398e-04 K^-1
+Pipeline data successfully saved to cp_0.68KCl-0.32MgCl2_703K.txt
+Job perfectly finished!

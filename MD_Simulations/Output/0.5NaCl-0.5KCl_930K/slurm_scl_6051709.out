@@ -1,0 +1,69 @@
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# SYSTEM PARAMETERS
+# =========================================================
+TEMP_K = 930.0
+SYSTEM_NAME = '0.5NaCl-0.5KCl'
+TRAJ_FILE = '0.5NaCl-0.5KCl_930.0K.extxyz'
+
+# Atom Counts
+n_na = 54
+n_k = 54
+n_cl = 108
+total_atoms = 216
+Structure Base = Rocksalt
+
+# =========================================================
+# PHASE 0-3: MACE MD SIMULATION
+# =========================================================
+# Assign Cations
+# Assign 108 Cl and create vacancies
+# Scale to initial density (1.6060629855000002 g/cm3)
+
+--- PHASE 0: GEOMETRY OPTIMIZATION ---
+      Step     Time          Energy          fmax
+FIRE:    0 17:56:43     -751.663269        0.343833
+
+--- PHASE 1: 2500K MELT ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_scl_pipeline.py:194: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=2500)
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+
+--- PHASE 2: 930.0K NPT EQUILIBRATION ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_scl_pipeline.py:201: FutureWarning: NPT thermostat has been moved/renamed to ase.md.melchionna.MelchionnaNPT. Please use this class instead (or a newer NPT thermostat!)
+  dyn_npt = NPT(atoms, timestep=1.0 * units.fs, temperature_K=TEMP_K, externalstress=p_ext,
+
+--- PHASE 3: 930.0K NVT PRODUCTION FOR RDF (Box Size: 19.60 Å) ---
+
+MD Complete! Starting SCL Analysis via MDAnalysis...
+Reading 0.5NaCl-0.5KCl_930.0K.extxyz into memory...
+Calculating all pairwise RDFs...
+
+--- SCL CALCULATION ---
+
+Analyzing Pair: Na-Cl
+  Transfer Step (r_peak): 2.704 A
+  First Minimum (Cutoff): 4.174 A
+  Peak Height: 0.796 | Minimum Depth: 0.076
+  Individual SCL: 2.838 A (Weight: 0.500)
+
+Analyzing Pair: K-Cl
+  Transfer Step (r_peak): 3.071 A
+  First Minimum (Cutoff): 4.751 A
+  Peak Height: 0.610 | Minimum Depth: 0.089
+  Individual SCL: 3.150 A (Weight: 0.500)
+
+Average SCL: 2.9941 A
+
+--- PHASE 5.5: EXTRACTING CND & BAD ---
+Analyzing local geometry over 200 frames...
+Saved raw CND data to CND_0.5NaCl-0.5KCl_930K.csv
+Saved raw BAD data to BAD_0.5NaCl-0.5KCl_930K.csv
+Pipeline data successfully saved to scl_0.5NaCl-0.5KCl_930K.txt
+Plots saved to '0.5NaCl-0.5KCl_930.0K_SCL_Results.png'.

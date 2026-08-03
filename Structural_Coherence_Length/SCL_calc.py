@@ -1883,7 +1883,7 @@ def main():
         #   'no_bPH'           — forces b_PH = 0 (no phase difference disruption)
         #   'penalty'        — mass, bond, and polarizability penalty (default)
         #   None / empty     — original concentration-only
-        b_ph_factors={'penalty'},
+        b_ph_factors={},
     )
 
     # # --- Unary Salts (11) ---
@@ -1909,12 +1909,14 @@ def main():
     # analyzer.add_molten_salt(_prep_path("0.637LiCl-0.363KCl", 'Jiang, 2016', 750), "0.637LiCl-0.363KCl", 'Jiang, 2016', 750, 0)
     # analyzer.add_molten_salt(_prep_path("0.5NaCl-0.5KCl", 'Manga, 2014', 1100), "0.5NaCl-0.5KCl", 'Manga, 2014', 1100, 4.32778)
     # analyzer.add_molten_salt(_prep_path("0.5NaCl-0.5KCl", 'Walker, 2026', 1100), "0.5NaCl-0.5KCl", 'Walker, 2026', 1100, 4.32778)
+    analyzer.add_molten_salt(_prep_path("0.5LiCl-0.5KCl", 'NumbersNVE, 2026', 738), "0.5LiCl-0.5KCl", 'NumbersNVE, 2026', 738, 0)
+    analyzer.add_molten_salt(_prep_path("0.5LiCl-0.5KCl", 'NumbersNVT, 2026', 738), "0.5LiCl-0.5KCl", 'NumbersNVT, 2026', 738, 0)
     # analyzer.add_molten_salt(_prep_path("0.6NaCl-0.4KCl", 'Walker, 2026', 1100), "0.6NaCl-0.4KCl", 'Walker, 2026', 1100, 4.32778)
     # analyzer.add_molten_salt(_prep_path("0.3NaCl-0.7KCl", 'Walker, 2026', 1100), "0.3NaCl-0.7KCl", 'Walker, 2026', 1100, 4.32778)
     # analyzer.add_molten_salt(_prep_path("0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073), "0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073, 0)
     # analyzer.add_molten_salt(_prep_path("0.4903NaCl-0.5097CaCl2", 'Wei, 2022', 1023), "0.4903NaCl-0.5097CaCl2", 'Wei, 2022', 1023, 3.76913)
     # analyzer.add_molten_salt(_prep_path("0.718KCl-0.282CaCl2", 'Wei, 2022', 1300), "0.718KCl-0.282CaCl2", 'Wei, 2022', 1300, 0)
-    analyzer.add_molten_salt(_prep_path("0.465LiF-0.115NaF-0.42KF", 'Frandsen, 2020', 873), "0.465LiF-0.115NaF-0.42KF", 'Frandsen, 2020', 873, 2.26059)
+    # analyzer.add_molten_salt(_prep_path("0.465LiF-0.115NaF-0.42KF", 'Frandsen, 2020', 873), "0.465LiF-0.115NaF-0.42KF", 'Frandsen, 2020', 873, 2.26059)
     # analyzer.add_molten_salt(_prep_path("0.345NaF-0.59KF-0.065MgF2", 'Solano, 2021', 1073), "0.345NaF-0.59KF-0.065MgF2", 'Solano, 2021', 1073, 3.92263)
     # analyzer.add_molten_salt(_prep_path("0.45MgCl2-0.33NaCl-0.22KCl", 'Jiang, 2024', 750), "0.45MgCl2-0.33NaCl-0.22KCl", 'Jiang, 2024', 750, 0)
     # analyzer.add_molten_salt(_prep_path("0.38MgCl2-0.21NaCl-0.41KCl", 'Jiang, 2024', 750), "0.38MgCl2-0.21NaCl-0.41KCl", 'Jiang, 2024', 750, 3.65358)

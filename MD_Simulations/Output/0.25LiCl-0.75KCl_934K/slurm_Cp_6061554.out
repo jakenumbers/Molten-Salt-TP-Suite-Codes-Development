@@ -1,0 +1,69 @@
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# SYSTEM PARAMETERS
+# =========================================================
+ANCHOR_TEMP_K = 934.0
+SYSTEM_NAME = '025LiCl-075KCl'
+
+# Atom Counts
+n_li = 27
+n_k = 81
+n_cl = 108
+total_atoms = 216
+Structure Base = Rocksalt
+
+--- PHASE 0: GEOMETRY OPTIMIZATION ---
+      Step     Time          Energy          fmax
+FIRE:    0 11:14:28     -753.791565        1.037567
+FIRE:    1 11:14:31     -754.042175        0.971343
+
+--- PHASE 1: 2500K MELT ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_cp_pipeline.py:176: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=2500)
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+Restoring true Lithium mass (6.94 amu) for valid dynamic calculation...
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_cp_pipeline.py:216: FutureWarning: NPT thermostat has been moved/renamed to ase.md.melchionna.MelchionnaNPT. Please use this class instead (or a newer NPT thermostat!)
+  dyn_npt = NPT(atoms, timestep=1.0 * units.fs, temperature_K=temperatures[0], externalstress=p_ext,
+
+--- SWEEP: 1434.0K ---
+Equilibrating at 1434.0K for 20 ps...
+Production at 1434.0K for 50 ps...
+
+--- SWEEP: 1334.0K ---
+Equilibrating at 1334.0K for 20 ps...
+Production at 1334.0K for 50 ps...
+
+--- SWEEP: 1234.0K ---
+Equilibrating at 1234.0K for 20 ps...
+Production at 1234.0K for 50 ps...
+
+--- SWEEP: 1134.0K ---
+Equilibrating at 1134.0K for 20 ps...
+Production at 1134.0K for 50 ps...
+
+--- SWEEP: 1034.0K ---
+Equilibrating at 1034.0K for 20 ps...
+Production at 1034.0K for 50 ps...
+
+--- SWEEP: 934.0K ---
+Equilibrating at 934.0K for 20 ps...
+Production at 934.0K for 50 ps...
+
+MD Sweep Complete! Starting Analysis...
+
+Plots saved to '025LiCl-075KCl_Heat_Capacity_Results.png'.
+
+# =========================================================
+# FINAL THERMODYNAMIC PROPERTIES
+# =========================================================
+Target Anchor Temperature (Tm): 934.0 K
+Volumetric Cp at 934.0 K: 1.66e+06 J/(m^3*K)
+Volumetric Thermal Expansion (α) at 934.0 K: 3.35507e-04 K^-1
+Pipeline data successfully saved to cp_0.25LiCl-0.75KCl_934K.txt
+Job perfectly finished!
