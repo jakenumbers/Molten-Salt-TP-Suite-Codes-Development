@@ -5,6 +5,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# --- NEW IMPORTS FOR PDF & OMEGA_0 EXTRACTION ---
+from ase.io import read
+from ase.data import atomic_masses, atomic_numbers
+import MDAnalysis as mda
+from MDAnalysis.analysis import rdf
+from scipy.optimize import curve_fit
+from scipy.signal import find_peaks
+
 # ====================================================================
 # GLOBAL PLOT STYLING
 # ====================================================================
@@ -18,6 +26,104 @@ plt.rcParams.update({
     'mathtext.fontset': 'custom', 'mathtext.rm': 'Times New Roman',
     'mathtext.it': 'Times New Roman:italic', 'mathtext.bf': 'Times New Roman:bold',
 })
+
+# ====================================================================
+# SCM MATH: DUAL-GAUSSIAN PMF TO FUNDAMENTAL FREQUENCY
+# ====================================================================
+def dual_gaussian(x, a1, m1, s1, a2, m2, s2, y0):
+    return (a1 * np.exp(-0.5 * ((x - m1) / s1)**2) +
+            a2 * np.exp(-0.5 * ((x - m2) / s2)**2) + y0)
+
+def extract_pdf_and_omega0(traj_file, temp_k, cations, anion='Cl'):
+    print(f"\n--- Extracting unweighted PDF from {traj_file} for omega_0 ---")
+    
+    # 1. Read last 200 frames via ASE for optimization
+    traj = read(traj_file, index='-200:')
+    
+    # 2. Bridge ASE to MDAnalysis (Prevents topology errors with extxyz)
+    n_atoms = len(traj[0])
+    elements = traj[0].get_chemical_symbols()
+    
+    u = mda.Universe.empty(n_atoms, trajectory=True)
+    u.add_TopologyAttr('name', elements)
+    u.add_TopologyAttr('type', elements)
+    
+    coord_array = np.array([frame.get_positions() for frame in traj])
+    u.load_new(coord_array, format=mda.coordinates.memory.MemoryReader)
+    
+    for i, frame in enumerate(traj):
+        u.trajectory[i].dimensions = np.array([
+            frame.cell.lengths()[0], frame.cell.lengths()[1], frame.cell.lengths()[2],
+            frame.cell.angles()[0], frame.cell.angles()[1], frame.cell.angles()[2]
+        ])
+
+    omega0_dict = {}
+    m_anion = atomic_masses[atomic_numbers[anion]]
+
+    # 3. Calculate RDF, Fit, and Extract Math
+    for cat in cations:
+        ag_cat = u.select_atoms(f'name {cat}')
+        ag_an = u.select_atoms(f'name {anion}')
+        
+        if len(ag_cat) == 0: continue
+            
+        # Execute MDAnalysis InterRDF
+        irdf = rdf.InterRDF(ag_cat, ag_an, nbins=200, range=(1.5, 8.0))
+        irdf.run()
+        
+        r, g = irdf.results.bins, irdf.results.rdf
+        
+        # Isolate First Peak
+        peaks, _ = find_peaks(g, height=1.0, distance=10)
+        if len(peaks) == 0: continue
+        r_peak = r[peaks[0]]
+        
+        mask = (r > r_peak - 1.0) & (r < r_peak + 1.2)
+        r_fit, g_fit = r[mask], g[mask]
+        
+        # Fit Dual Gaussian
+        p0 = [g[peaks[0]], r_peak, 0.2, g[peaks[0]]*0.3, r_peak+0.5, 0.4, 0]
+        try:
+            popt, _ = curve_fit(dual_gaussian, r_fit, g_fit, p0=p0, bounds=(0, np.inf), maxfev=5000)
+        except:
+            print(f"Dual Gaussian fit failed for {cat}-{anion}. Using primary peak fallback.")
+            popt = p0
+            
+        # Numerically locate the exact peak of the fitted Gaussian
+        r_dense = np.linspace(r_peak - 0.5, r_peak + 0.5, 1000)
+        g_dense = dual_gaussian(r_dense, *popt)
+        r0_fit = r_dense[np.argmax(g_dense)]
+        g0_fit = np.max(g_dense)
+        
+        # Calculate the second derivative (g'') via central difference
+        dr = 1e-4
+        g_plus = dual_gaussian(r0_fit + dr, *popt)
+        g_minus = dual_gaussian(r0_fit - dr, *popt)
+        d2g = (g_plus - 2*g0_fit + g_minus) / (dr**2)
+        
+        # PMF Stiffness: W''(r) = -k_B * T * (g'' / g)
+        k_B = 1.380649e-23
+        # Convert d2g from A^-2 to m^-2 (* 1e20)
+        k_eff = -k_B * temp_k * (d2g / g0_fit) * 1e20  # N/m
+        
+        # Compute Fundamental Frequency (w_0)
+        m_cat = atomic_masses[atomic_numbers[cat]]
+        mu_kg = ((m_cat * m_anion) / (m_cat + m_anion)) * 1.660539e-27
+        
+        if k_eff > 0:
+            omega_0_rad_s = np.sqrt(k_eff / mu_kg)
+            omega_0_cm = omega_0_rad_s / (2 * np.pi * 29979245800.0)
+            
+            # Save BOTH the frequency and the fitted peak distance!
+            omega0_dict[cat] = {
+                'omega_0': omega_0_cm,
+                'r_peak': r0_fit
+            }
+            print(f"[{cat}-{anion}] r_peak: {r0_fit:.2f} A | k_eff: {k_eff:.2f} N/m | omega_0: {omega_0_cm:.1f} cm-1")
+        else:
+            omega0_dict[cat] = {'omega_0': np.nan, 'r_peak': np.nan}
+
+    return omega0_dict
 
 # ====================================================================
 # 1. COORDINATION NUMBER DISTRIBUTION (CND)
@@ -79,7 +185,7 @@ def plot_bad(file_path):
 # ====================================================================
 # 3. DISPERSION RELATION (J_L HEATMAP) - Angular Freq (rad/ps) vs nm^-1
 # ====================================================================
-def plot_dispersion(file_path, v_s_value=None):
+def plot_dispersion(file_path, v_s_value=None, omega0_dict=None):
     if not os.path.exists(file_path): 
         print(f"File not found: {file_path}")
         return
@@ -113,43 +219,40 @@ def plot_dispersion(file_path, v_s_value=None):
     # ----------------------------------------------------------------
     # STRUCTURAL BOUNDARIES & ACOUSTIC LIMIT
     # ----------------------------------------------------------------
+    max_q_line = 0
+    colors = ['gray', 'dimgray', 'darkgray']
     
-    # 3. Define the real-space RDF peak distances in Angstroms
-    # !! UPDATE THESE with the exact first-peak r-values from your RDF !!
-    r_nacl_A = 2.70 
-    r_kcl_A = 3.07  
-
-    # Convert to nm
-    r_nacl_nm = r_nacl_A / 10.0
-    r_kcl_nm = r_kcl_A / 10.0
-
-    # Calculate Wavenumber Q = pi / r (Derived from lambda_min = 2r)
-    q_nacl = np.pi / r_nacl_nm
-    q_kcl = np.pi / r_kcl_nm
-    
-    # Plot vertical dotted lines for the structural peaks
-    ax.axvline(q_kcl, color='green', linestyle=':', linewidth=2, 
-               label=f'K-Cl Peak ($Q={q_kcl:.1f}$ nm$^{{-1}}$)')
-    ax.axvline(q_nacl, color='red', linestyle=':', linewidth=2, 
-               label=f'Na-Cl Peak ($Q={q_nacl:.1f}$ nm$^{{-1}}$)')
+    if omega0_dict is not None:
+        for idx, (cat, data) in enumerate(omega0_dict.items()):
+            r_peak_A = data['r_peak']
+            if not np.isnan(r_peak_A):
+                # Convert Å to nm, then calculate Q = pi / r
+                r_peak_nm = r_peak_A / 10.0
+                q_peak = np.pi / r_peak_nm
+                
+                # Keep track of the highest Q to stop the Vs line
+                if q_peak > max_q_line:
+                    max_q_line = q_peak
+                
+                col_match = colors[idx % len(colors)]
+                ax.axvline(q_peak, color=col_match, linestyle=':', linewidth=2, 
+                           label=f'{cat}-Cl Peak ($Q={q_peak:.1f}$ nm$^{{-1}}$)')
 
     # 4. Overlay the theoretical Speed of Sound slope
     if v_s_value is not None and not np.isnan(v_s_value):
-        # Limit the acoustic line to stop at the second (higher) dotted line
-        max_q_line = max(q_nacl, q_kcl)
+        # If we didn't find any peaks, default the line to stretch to Q=20
+        domain_end = max_q_line if max_q_line > 0 else 20.0
         
         # Create a clean domain from 0 to the structural boundary
-        v_s_q_domain = np.linspace(0, max_q_line, 100)
+        v_s_q_domain = np.linspace(0, domain_end, 100)
         
         # Calculate expected angular frequencies
-        # v_s in m/s divided by 1000 -> nm/ps
         # omega (rad/ps) = v_s (nm/ps) * Q (nm^-1)
         v_s_line = (v_s_value / 1000.0) * v_s_q_domain
         
         ax.plot(v_s_q_domain, v_s_line, color='#1f77b4', linestyle='-', 
                 linewidth=2.5, label=f'Acoustic Limit ($V_s$ = {v_s_value:.0f} m/s)')
         
-        # Keep the plot focused on the actual MD data bounds
         ax.set_ylim(0, max(freq_rad_ps))
 
     # Update axis labels
@@ -172,10 +275,8 @@ def plot_dispersion(file_path, v_s_value=None):
 # ====================================================================
 # 4 & 5. PARTICIPATION RATIO AND VDOS (COMBINED PLOT)
 # ====================================================================
-def plot_pr_vdos(pr_file, vdos_file, cnd_file):
-    if not os.path.exists(pr_file) or not os.path.exists(vdos_file): 
-        print("Missing PR or VDOS file.")
-        return
+def plot_pr_vdos(pr_file, vdos_file, cnd_file, omega0_dict=None):
+    if not os.path.exists(pr_file) or not os.path.exists(vdos_file): return
     
     # ---------------------------------------------------------
     # NEW: Calculate SPECIES-SPECIFIC PR Thresholds from CND
@@ -227,19 +328,27 @@ def plot_pr_vdos(pr_file, vdos_file, cnd_file):
     
     for col in vdos_cols:
         cat = col.split('_')[-1]
-        
-        # Plot the line and capture the object to extract its color
         p = ax1.plot(df_vdos['Freq_cm-1'], df_vdos[col], label=f'{cat} VDOS')
         c = p[0].get_color() 
-        species_colors[cat] = c # Save it for later!
-        
-        # Fill under the curve using that exact color
+        species_colors[cat] = c 
         ax1.fill_between(df_vdos['Freq_cm-1'], df_vdos[col], color=c, alpha=0.15)
         
     ax1.set_xlabel(r'Frequency $\omega$ (cm$^{-1}$)')
     ax1.set_ylabel(r'Density of States $D(\omega)$', color='gray')
     ax1.tick_params(axis='y', labelcolor='gray')
+
+    # ---------------------------------------------------------
+    # NEW: OVERLAY FUNDAMENTAL FREQUENCIES ON VDOS AXIS
+    # ---------------------------------------------------------
+    if omega0_dict is not None:
+        for cat, data in omega0_dict.items():
+            omega0 = data['omega_0']
+            if not np.isnan(omega0):
+                matched_color = species_colors.get(cat, 'black')
+                ax1.axvline(omega0, color=matched_color, linestyle='-.', linewidth=2.0, alpha=0.8,
+                            label=f'{cat}-Cl $\\omega_0$ ({omega0:.0f} cm$^{{-1}}$)')
     
+    # --- Plot PR on Right Axis ---
     # --- Plot PR on Right Axis ---
     ax2 = ax1.twinx()
     mask_real = df_pr['Freq_parsed'] >= 0
@@ -253,7 +362,7 @@ def plot_pr_vdos(pr_file, vdos_file, cnd_file):
         # Retrieve the matched color (fallback to 'gray' if not found)
         matched_color = species_colors.get(cat, 'gray') 
         
-        ax2.axhline(thresh, color=matched_color, linestyle=linestyles[list(species_thresholds.keys()).index(cat) % len(linestyles)], linewidth=2.0, alpha=0.9, 
+        ax2.axhline(thresh, color=matched_color, linestyle='--', linewidth=2.0, alpha=0.9, 
                     label=f'{cat} Localization ($PR={thresh:.2f}$)')
     
     ax2.scatter(df_pr.loc[mask_real, 'Freq_parsed'], df_pr.loc[mask_real, 'Participation_Ratio'], 
@@ -272,12 +381,12 @@ def plot_pr_vdos(pr_file, vdos_file, cnd_file):
     # Consolidate Legends
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
-    ax2.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
     
     plt.tight_layout()
     plt.savefig('Plot_4_5_PR_VDOS_Combined.png', dpi=300)
     plt.close()
-    print("Saved PR + VDOS Plot with Species-Specific Limits.")
+    print("Saved PR + VDOS Plot with omega_0 markers.")
  
 # ====================================================================
 # 6. TRANSPORT METRICS (MULTIPANEL)
@@ -327,44 +436,80 @@ def plot_transport(file_path):
 
 if __name__ == "__main__":
     import glob
+    import re
     
-    # --- Edit these prefixes to match your files ---
-    PREFIX = "0.5NaCl-0.5KCl_930K"
+    # -------------------------------------------------------------
+    # Run inside the script's own folder so all file I/O is local
+    # (Output/[salt_index]/plotting.py -> reads/writes its folder)
+    # -------------------------------------------------------------
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(SCRIPT_DIR)
     
-    # 1. Parse the prefix to locate the matching Vs seed files
-    try:
-        comp_str, temp_str = PREFIX.split('_')
-        vs_pattern = f"Vs_{comp_str}_seed_*_{temp_str}.txt"
-        vs_files = glob.glob(vs_pattern)
+    # --- Auto-detect the prefix from the folder name ---
+    PREFIX = os.path.basename(SCRIPT_DIR)  # e.g. "0.68KCl-0.32MgCl2_703.0K"
+    print(f"Auto-detected prefix '{PREFIX}' from folder '{SCRIPT_DIR}'.")
+    
+    # 1. AUTO-DETECT CATIONS AND TEMPERATURE
+    comp_str, temp_str = PREFIX.split('_')
+    TEMP_K = float(temp_str.replace('K', ''))
+    
+    # Find all element symbols in the composition string, ignoring numbers and 'Cl'
+    all_elements = re.findall(r'[A-Z][a-z]?', comp_str)
+    CATIONS = list(set([el for el in all_elements if el != 'Cl']))
+    print(f"\nAuto-detected Cations: {CATIONS} | Temperature: {TEMP_K} K")
+    
+    # 2. LOCATE Vs SEED FILES
+    vs_pattern = f"Vs_{comp_str}_seed_*_{int(TEMP_K)}K.txt"
+    vs_files = glob.glob(vs_pattern)
+    
+    avg_vs = None
+    if vs_files:
+        vs_values = []
+        for vf in vs_files:
+            with open(vf, 'r') as f:
+                try:
+                    val = float(f.read().strip())
+                    if not np.isnan(val):
+                        vs_values.append(val)
+                except ValueError:
+                    pass
+        if vs_values:
+            avg_vs = np.mean(vs_values)
+            print(f"Averaged Speed of Sound ({len(vs_values)} seeds): {avg_vs:.2f} m/s")
+    
+    # 3. LOCATE DISPERSION FILE (Handles '703K' vs '703.0K' mismatch)
+    disp_files = glob.glob(f"Dispersion_{comp_str}_*.csv")
+    disp_file = disp_files[0] if disp_files else f"Dispersion_{PREFIX}.csv"
+
+    # 4. EXTRACT PDF MATH & PEAKS (Do this BEFORE plotting!)
+    extxyz_file = f"{PREFIX}_NVE_seed_42.extxyz" 
+    
+    if os.path.exists(extxyz_file):
+        omega0_results = extract_pdf_and_omega0(extxyz_file, temp_k=TEMP_K, cations=CATIONS)
+    else:
+        print(f"Trajectory {extxyz_file} not found. Skipping omega_0 calculation.")
+        omega0_results = None
+
+    # 5. EXECUTE PLOTS
+    plot_cnd(f"CND_{comp_str}_{int(TEMP_K)}K.csv")
+    
+    bad_files = glob.glob(f"BAD_{comp_str}_*.csv")
+    if bad_files: plot_bad(bad_files[0])
+    
+    # PASS THE EXTRACTED RESULTS HERE!
+    plot_dispersion(disp_file, v_s_value=avg_vs, omega0_dict=omega0_results)
+    
+    transport_files = glob.glob(f"Transport_{comp_str}_*.csv")
+    if transport_files: plot_transport(transport_files[0])
         
-        avg_vs = None
-        if vs_files:
-            vs_values = []
-            for vf in vs_files:
-                with open(vf, 'r') as f:
-                    try:
-                        val = float(f.read().strip())
-                        if not np.isnan(val):
-                            vs_values.append(val)
-                    except ValueError:
-                        pass
-            if vs_values:
-                avg_vs = np.mean(vs_values)
-                print(f"Averaged Speed of Sound from {len(vs_values)} seed files: {avg_vs:.2f} m/s")
-        else:
-            print(f"No Vs files found matching pattern: {vs_pattern}. Slope will not be plotted.")
-    except Exception as e:
-        print(f"Could not parse Vs files: {e}")
-        avg_vs = None
-        
-    # 2. Execute all plotters
-    plot_cnd(f"CND_{PREFIX}.csv")
-    plot_bad(f"BAD_{PREFIX}.csv")
+    pr_files = glob.glob(f"PR_{comp_str}_*.csv")
+    vdos_files = glob.glob(f"VDOS_{comp_str}_*.csv")
+    cnd_files = glob.glob(f"CND_{comp_str}_*.csv")
     
-    # Pass the calculated avg_vs to the dispersion plotter!
-    plot_dispersion(f"Dispersion_{PREFIX}.csv", v_s_value=avg_vs)
-    
-    plot_pr_vdos(pr_file=f"PR_{PREFIX}.csv", vdos_file=f"VDOS_{PREFIX}.csv", cnd_file=f"CND_{PREFIX}.csv")
-    plot_transport(f"Transport_{PREFIX}.csv")
+    if pr_files and vdos_files:
+        plot_pr_vdos(pr_file=pr_files[0], 
+                     vdos_file=vdos_files[0], 
+                     cnd_file=cnd_files[0] if cnd_files else "", 
+                     omega0_dict=omega0_results)
     
     print("\nAll plots generated successfully!")

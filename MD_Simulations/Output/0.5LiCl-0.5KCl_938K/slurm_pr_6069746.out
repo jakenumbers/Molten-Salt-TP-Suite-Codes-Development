@@ -1,0 +1,28 @@
+Anaconda3 version 2021.05
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# INSTANTANEOUS NORMAL MODES (INM) & PARTICIPATION RATIO
+# =========================================================
+Reading topology and positions from: 0.5LiCl-0.5KCl_938.0K_NVE_seed_42.extxyz (Frame: -1)
+System loaded: 216 atoms.
+Loading MACE MLIP from /lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/SuperSalt-swa.model...
+
+Calculating Hessian matrix via finite displacements...
+(This requires 6*N = 1296 force evaluations. Please wait...)
+Hessian matrix computed and cached.
+
+Diagonalizing Dynamical Matrix...
+Calculating Participation Ratio (PR) for all 3N modes...
+
+Analysis complete!
+Participation Ratio data saved to: PR_0.5LiCl-0.5KCl_938K.csv
+
+--- Real Modes Summary ---
+Total Real Modes: 648
+Max Frequency: 726.01+0.00j cm^-1
+Avg PR: 0.2807

@@ -1,0 +1,110 @@
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# INITIALIZING 068KCl-032MgCl2 BULK MODULUS (Kt)
+# =========================================================
+Target Temp: 903.0 K | Density: 1.6332583024000003 g/cm^3
+Structure Base: Fluorite | Total Atoms: 251
+
+--- PHASE 0: GEOMETRY OPTIMIZATION ---
+      Step     Time          Energy          fmax
+FIRE:    0 14:51:46     -738.172119        3.594470
+FIRE:    1 14:51:46     -742.690308        3.618963
+FIRE:    2 14:51:59     -747.121460        3.628983
+FIRE:    3 14:51:59     -751.468323        3.623462
+FIRE:    4 14:52:00     -755.734314        3.601471
+FIRE:    5 14:52:00     -759.921021        3.562256
+FIRE:    6 14:52:00     -764.027344        3.505311
+FIRE:    7 14:52:00     -768.052979        3.430447
+FIRE:    8 14:52:00     -771.995483        3.337883
+FIRE:    9 14:52:01     -775.853516        3.228297
+FIRE:   10 14:52:01     -779.623718        3.102910
+FIRE:   11 14:52:01     -783.302734        2.963601
+FIRE:   12 14:52:01     -786.887146        2.890651
+FIRE:   13 14:52:01     -790.373779        2.929324
+FIRE:   14 14:52:01     -793.758545        2.960691
+FIRE:   15 14:52:01     -797.039124        2.982994
+FIRE:   16 14:52:01     -800.212524        2.993780
+FIRE:   17 14:52:01     -803.278015        2.989890
+FIRE:   18 14:52:01     -806.234924        2.967504
+FIRE:   19 14:52:01     -809.083862        2.922268
+FIRE:   20 14:52:01     -811.826965        2.849596
+FIRE:   21 14:52:01     -814.466553        2.745068
+FIRE:   22 14:52:01     -817.007568        2.605312
+FIRE:   23 14:52:01     -819.453735        2.429436
+FIRE:   24 14:52:01     -821.808777        2.221230
+FIRE:   25 14:52:01     -824.075745        1.992082
+FIRE:   26 14:52:01     -826.256409        1.947624
+FIRE:   27 14:52:01     -828.351501        1.903138
+FIRE:   28 14:52:01     -830.362854        1.847352
+FIRE:   29 14:52:01     -832.292114        1.838004
+FIRE:   30 14:52:01     -834.140686        1.842725
+FIRE:   31 14:52:01     -835.911804        1.844015
+FIRE:   32 14:52:01     -837.605164        1.841189
+FIRE:   33 14:52:01     -839.219482        1.832629
+FIRE:   34 14:52:01     -840.757507        1.815337
+FIRE:   35 14:52:01     -842.219055        1.784460
+FIRE:   36 14:52:01     -843.608276        1.733014
+FIRE:   37 14:52:01     -844.929260        1.762760
+FIRE:   38 14:52:01     -846.187378        1.834799
+FIRE:   39 14:52:01     -847.386719        1.887913
+FIRE:   40 14:52:01     -848.529114        1.911009
+FIRE:   41 14:52:01     -849.616760        1.888808
+FIRE:   42 14:52:01     -850.648865        1.800163
+FIRE:   43 14:52:01     -851.625122        1.615814
+FIRE:   44 14:52:02     -852.544861        1.307778
+FIRE:   45 14:52:02     -853.406433        1.625524
+FIRE:   46 14:52:02     -854.207031        1.822797
+FIRE:   47 14:52:02     -854.946899        1.861788
+FIRE:   48 14:52:02     -855.632446        2.017313
+FIRE:   49 14:52:02     -856.286255        2.748181
+FIRE:   50 14:52:02     -856.937256        3.202339
+FIRE:   51 14:52:02     -857.601135        3.264333
+FIRE:   52 14:52:02     -858.265991        2.858679
+FIRE:   53 14:52:02     -858.901428        2.153188
+FIRE:   54 14:52:02     -859.487000        2.087373
+FIRE:   55 14:52:02     -860.031494        2.404422
+FIRE:   56 14:52:02     -860.559326        2.413294
+FIRE:   57 14:52:02     -861.086853        2.223121
+FIRE:   58 14:52:02     -861.610718        1.876978
+FIRE:   59 14:52:02     -862.117188        1.326702
+FIRE:   60 14:52:02     -862.597046        0.871417
+
+--- PHASE 1: 2500K MELT (Langevin NVT) ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_kt_pipeline.py:184: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=MELT_TEMP, rng=rng)
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+
+--- PHASE 2: COOLING TO TARGET TEMP (903.0 K) ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_kt_pipeline.py:208: FutureWarning: NPT thermostat has been moved/renamed to ase.md.melchionna.MelchionnaNPT. Please use this class instead (or a newer NPT thermostat!)
+  dyn_npt = NPT(atoms, timestep=1.0 * units.fs, temperature_K=TARGET_TEMP, externalstress=pressures_bar[0] * units.bar,
+
+--- PRESSURE SWEEP: 1.01325 bar ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_kt_pipeline.py:215: FutureWarning: NPT thermostat has been moved/renamed to ase.md.melchionna.MelchionnaNPT. Please use this class instead (or a newer NPT thermostat!)
+  dyn_npt = NPT(atoms, timestep=1.0 * units.fs, temperature_K=TARGET_TEMP, externalstress=P * units.bar,
+System already equilibrated to 1.01325 bar during cooling phase. Skipping equilibration...
+Production at 1.01325 bar for 50 ps...
+
+--- PRESSURE SWEEP: 1000.0 bar ---
+Equilibrating at 1000.0 bar for 20 ps...
+Production at 1000.0 bar for 50 ps...
+
+--- PRESSURE SWEEP: 2000.0 bar ---
+Equilibrating at 2000.0 bar for 20 ps...
+Production at 2000.0 bar for 50 ps...
+
+--- PRESSURE SWEEP: 3000.0 bar ---
+Equilibrating at 3000.0 bar for 20 ps...
+Production at 3000.0 bar for 50 ps...
+
+MD Pressure Sweep Complete! Starting Analysis...
+
+--- RESULTS ---
+Isothermal Bulk Modulus (K_T) at 903.0 K: 4.695 GPa
+Result saved to Kt_0.68KCl-0.32MgCl2_903K.txt
+Job perfectly finished!

@@ -1,0 +1,19 @@
+Anaconda3 version 2021.05
+Starting aggregation for 0.5NaCl-0.5KCl at 1130 K...
+--- AGGREGATING THERMAL CONDUCTIVITY FOR 0.5NaCl-0.5KCl ---
+scl: 2.961276537744409 Angstroms
+Cp: 1589607.7967642378
+alpha: 0.0003403119375336113
+Kt: 5.018438762277874 GPa
+Participation Ratio (Avg Real Modes PR): 0.3252
+Averaged v_s from 3 valid trials (out of 3 total): 1627.89 m/s
+
+--- FINAL RESULTS ---
+k at T_m (1130.0K): 0.2554 W/(m*K)
+Gruneisen Param (gamma): 1.8308
+C_v (volumetric): 932855.74 J/(m^3*K)
+
+--- k(T) FUNCTION ---
+k(T) = 0.2554 * [ 1 - 7.364667e-04 * (T - 1130.0) ]
+Pipeline data successfully saved to k(T)_0.5NaCl-0.5KCl_1130K.txt
+Aggregation complete!

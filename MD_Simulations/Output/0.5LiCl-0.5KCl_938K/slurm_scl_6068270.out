@@ -1,0 +1,49 @@
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# SYSTEM PARAMETERS
+# =========================================================
+TEMP_K = 938.0
+SYSTEM_NAME = '0.5LiCl-0.5KCl'
+TRAJ_FILE = '0.5LiCl-0.5KCl_938.0K.extxyz'
+
+# Atom Counts
+n_li = 54
+n_k = 54
+n_cl = 108
+total_atoms = 216
+Structure Base = Rocksalt
+
+# =========================================================
+# PHASE 0-3: MACE MD SIMULATION
+# =========================================================
+# Assign Cations
+# Assign 108 Cl and create vacancies
+# Scale to initial density (1.532763933 g/cm3)
+
+--- PHASE 0: GEOMETRY OPTIMIZATION ---
+      Step     Time          Energy          fmax
+FIRE:    0 10:37:56     -755.100586        0.621990
+FIRE:    1 10:37:57     -755.276917        0.612921
+FIRE:    2 10:38:10     -755.619385        0.595006
+FIRE:    3 10:38:10     -756.106384        0.568682
+FIRE:    4 10:38:10     -756.710266        0.534579
+FIRE:    5 10:38:11     -757.397705        0.493476
+
+--- PHASE 1: 2500K MELT ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_scl_pipeline.py:194: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=2500)
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+Restoring true Lithium mass (6.94 amu) for valid dynamic calculation...
+
+--- PHASE 2: 938.0K NPT EQUILIBRATION ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_scl_pipeline.py:209: FutureWarning: NPT thermostat has been moved/renamed to ase.md.melchionna.MelchionnaNPT. Please use this class instead (or a newer NPT thermostat!)
+  dyn_npt = NPT(atoms, timestep=1.0 * units.fs, temperature_K=TEMP_K, externalstress=p_ext,
+
+--- PHASE 3: 938.0K NVT PRODUCTION FOR RDF (Box Size: 18.83 Å) ---
+[2026-08-03T12:40:36.566] error: *** JOB 6068270 ON clrt1151 CANCELLED AT 2026-08-03T12:40:36 DUE to SIGNAL Terminated ***

@@ -1,3 +1,5 @@
+import os
+import glob
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,13 +12,54 @@ from scipy.signal import find_peaks
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Standalone SCL Trajectory Analyzer")
-    parser.add_argument('--traj', type=str, required=True, help='Path to trajectory file (e.g., traj.extxyz)')
-    parser.add_argument('--comp', type=str, required=True, help='System name for the output file (e.g., 0.5NaCl-0.5KCl)')
-    parser.add_argument('--temp', type=float, required=True, help='Temperature of the system in K')
+    # -------------------------------------------------------------
+    # Run inside the script's own folder so all file I/O is local
+    # (Output/[salt_index]/trajectory.py -> reads/writes its folder)
+    # -------------------------------------------------------------
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(SCRIPT_DIR)
+
+    parser = argparse.ArgumentParser(
+        description="Standalone SCL Trajectory Analyzer (auto-detects composition, "
+                    "temperature, and trajectory from its own folder)")
+    parser.add_argument('--traj', type=str, default=None,
+                        help='Path to trajectory file (default: auto-detect main .extxyz in this folder)')
+    parser.add_argument('--comp', type=str, default=None,
+                        help='System name for the output file (default: auto-detect from folder name, '
+                             'e.g. 0.5NaCl-0.5KCl)')
+    parser.add_argument('--temp', type=float, default=None,
+                        help='Temperature of the system in K (default: auto-detect from folder name)')
     parser.add_argument('--bph', action='store_true', default=False,
                         help='Enable computed phonon transfer factor b_PH (default: off, b_PH = 0.0)')
     args = parser.parse_args()
+
+    # -------------------------------------------------------------
+    # AUTO-DETECT SYSTEM INFO FROM FOLDER NAME (Output/[salt_index]/)
+    # -------------------------------------------------------------
+    folder_name = os.path.basename(SCRIPT_DIR)  # e.g. "0.5NaCl-0.5KCl_1130K"
+
+    if args.comp is None and args.temp is None:
+        head, _, tail = folder_name.rpartition('_')
+        if head and tail.endswith('K'):
+            args.comp = head
+            args.temp = float(tail[:-1])
+            print(f"Auto-detected composition '{args.comp}' and temperature {args.temp:.1f} K "
+                  f"from folder '{folder_name}'")
+        else:
+            raise ValueError(
+                f"Could not auto-detect composition/temperature from folder name '{folder_name}'. "
+                "Please provide --comp and --temp explicitly.")
+
+    if args.traj is None:
+        # Prefer the main production trajectory (exclude NVE seed trajectories)
+        candidates = sorted(glob.glob('*.extxyz'))
+        main_traj = [f for f in candidates if '_NVE_seed_' not in f]
+        if not main_traj:
+            main_traj = candidates
+        if not main_traj:
+            raise ValueError(f"No .extxyz trajectory files found in '{SCRIPT_DIR}'.")
+        args.traj = main_traj[0]
+        print(f"Auto-detected trajectory file '{args.traj}'.")
 
     SYSTEM_NAME = args.comp
     TEMP_K = int(args.temp)
@@ -26,14 +69,23 @@ def main():
     # PHASE 1: READ TRAJECTORY & EXTRACT TOPOLOGY
     # =========================================================
     print(f"Reading {TRAJ_FILE} into memory...")
-    raw_traj = list(iread(TRAJ_FILE))
+    raw_traj = []
+    try:
+        for frame in iread(TRAJ_FILE):
+            raw_traj.append(frame)
+    except Exception as e:
+        print(f"Warning: Skipping malformed frame in {TRAJ_FILE}: {e}")
 
     if len(raw_traj) == 0:
         raise ValueError("Trajectory file is empty or invalid.")
 
-    # Dynamically grab elements and counts directly from the ASE frame
+    # Filter to frames with consistent atom count (handles NVE seed files that
+    # may contain frames from melt/equilibration stages with different sizes)
     frame0 = raw_traj[0]
     total_atoms = len(frame0)
+    raw_traj = [f for f in raw_traj if len(f) == total_atoms]
+    if len(raw_traj) == 0:
+        raise ValueError(f"No valid {total_atoms}-atom frames found in '{TRAJ_FILE}'.")
     symbols = frame0.get_chemical_symbols()
     atom_counts = {el: list(symbols).count(el) for el in set(symbols)}
     elements = list(atom_counts.keys())

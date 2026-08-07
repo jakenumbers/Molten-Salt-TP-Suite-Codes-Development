@@ -1,0 +1,37 @@
+Starting aggregation for 0.5NaCl-0.5KCl at 1130 K...
+--- AGGREGATING THERMAL CONDUCTIVITY FOR 0.5NaCl-0.5KCl ---
+scl: 2.961276537744409 Angstroms
+Cp: 1589607.7967642378
+alpha: 0.0003403119375336113
+Kt: 5.018438762277874 GPa
+Traceback (most recent call last):
+  File "/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_aggregate_pipeline.py", line 125, in <module>
+    main()
+    ~~~~^^
+  File "/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_aggregate_pipeline.py", line 66, in main
+    pr_df = pd.read_csv(pr_file)
+  File "/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/pandas/io/parsers/readers.py", line 873, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/pandas/io/parsers/readers.py", line 300, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/pandas/io/parsers/readers.py", line 1645, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/pandas/io/parsers/readers.py", line 1904, in _make_engine
+    self.handles = get_handle(
+                   ~~~~~~~~~~^
+        f,
+        ^^
+    ...<6 lines>...
+        storage_options=self.options.get("storage_options", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/pandas/io/common.py", line 930, in get_handle
+    handle = open(
+        handle,
+    ...<3 lines>...
+        newline="",
+    )
+FileNotFoundError: [Errno 2] No such file or directory: 'PR_0.5NaCl-0.5KCl_1130K.csv'
+Aggregation complete!

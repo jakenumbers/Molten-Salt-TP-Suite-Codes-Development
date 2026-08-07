@@ -35,7 +35,7 @@ def dual_gaussian(x, a1, m1, s1, a2, m2, s2, y0):
             a2 * np.exp(-0.5 * ((x - m2) / s2)**2) + y0)
 
 def extract_pdf_and_omega0(traj_file, temp_k, cations, anion='Cl'):
-    print(f"\n--- Extracting unweighted PDF from {traj_file} for \u03c9_0 ---")
+    print(f"\n--- Extracting unweighted PDF from {traj_file} for omega_0 ---")
     
     # 1. Read last 200 frames via ASE for optimization
     traj = read(traj_file, index='-200:')
@@ -119,7 +119,7 @@ def extract_pdf_and_omega0(traj_file, temp_k, cations, anion='Cl'):
                 'omega_0': omega_0_cm,
                 'r_peak': r0_fit
             }
-            print(f"[{cat}-{anion}] r_peak: {r0_fit:.2f} Å | k_eff: {k_eff:.2f} N/m | ω_0: {omega_0_cm:.1f} cm⁻¹")
+            print(f"[{cat}-{anion}] r_peak: {r0_fit:.2f} A | k_eff: {k_eff:.2f} N/m | omega_0: {omega_0_cm:.1f} cm-1")
         else:
             omega0_dict[cat] = {'omega_0': np.nan, 'r_peak': np.nan}
 
@@ -386,7 +386,7 @@ def plot_pr_vdos(pr_file, vdos_file, cnd_file, omega0_dict=None):
     plt.tight_layout()
     plt.savefig('Plot_4_5_PR_VDOS_Combined.png', dpi=300)
     plt.close()
-    print("Saved PR + VDOS Plot with \u03c9_0 markers.")
+    print("Saved PR + VDOS Plot with omega_0 markers.")
  
 # ====================================================================
 # 6. TRANSPORT METRICS (MULTIPANEL)
@@ -438,8 +438,16 @@ if __name__ == "__main__":
     import glob
     import re
     
-    # --- Just set the prefix, the script will figure out the rest! ---
-    PREFIX = "0.68KCl-0.32MgCl2_703.0K"
+    # -------------------------------------------------------------
+    # Run inside the script's own folder so all file I/O is local
+    # (Output/[salt_index]/plotting.py -> reads/writes its folder)
+    # -------------------------------------------------------------
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(SCRIPT_DIR)
+    
+    # --- Auto-detect the prefix from the folder name ---
+    PREFIX = os.path.basename(SCRIPT_DIR)  # e.g. "0.68KCl-0.32MgCl2_703.0K"
+    print(f"Auto-detected prefix '{PREFIX}' from folder '{SCRIPT_DIR}'.")
     
     # 1. AUTO-DETECT CATIONS AND TEMPERATURE
     comp_str, temp_str = PREFIX.split('_')
@@ -479,7 +487,7 @@ if __name__ == "__main__":
     if os.path.exists(extxyz_file):
         omega0_results = extract_pdf_and_omega0(extxyz_file, temp_k=TEMP_K, cations=CATIONS)
     else:
-        print(f"Trajectory {extxyz_file} not found. Skipping \u03c9_0 calculation.")
+        print(f"Trajectory {extxyz_file} not found. Skipping omega_0 calculation.")
         omega0_results = None
 
     # 5. EXECUTE PLOTS

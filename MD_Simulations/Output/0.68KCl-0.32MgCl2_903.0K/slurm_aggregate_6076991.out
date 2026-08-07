@@ -1,0 +1,19 @@
+Anaconda3 version 2021.05
+Starting aggregation for 0.68KCl-0.32MgCl2 at 903 K...
+--- AGGREGATING THERMAL CONDUCTIVITY FOR 0.68KCl-0.32MgCl2 ---
+scl: 3.0920093229164083 Angstroms
+Cp: 1684173.3630389334
+alpha: 0.00028102937600049194
+Kt: 4.695077478731839 GPa
+Participation Ratio (Avg Real Modes PR): 0.2770
+Averaged v_s from 3 valid trials (out of 3 total): 1394.22 m/s
+
+--- FINAL RESULTS ---
+k at T_m (903.0K): 0.2420 W/(m*K)
+Gruneisen Param (gamma): 0.9779
+C_v (volumetric): 1349335.97 J/(m^3*K)
+
+--- k(T) FUNCTION ---
+k(T) = 0.2420 * [ 1 - 3.684824e-04 * (T - 903.0) ]
+Pipeline data successfully saved to k(T)_0.68KCl-0.32MgCl2_903K.txt
+Aggregation complete!

@@ -1,0 +1,41 @@
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# INITIALIZING 05NaCl-05KCl Vs ARRAY (SEED 43)
+# =========================================================
+Target Temp: 1130.0 K | Density: 1.4928579855000002 g/cm^3
+Structure Base: Rocksalt | Total Atoms: 216
+
+--- PHASE 0: GEOMETRY OPTIMIZATION ---
+      Step     Time          Energy          fmax
+FIRE:    0 11:48:28     -739.586975        0.677514
+
+--- PHASE 1: 2500K MELT (Langevin NVT) ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_vs_pipeline.py:233: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=MELT_TEMP, rng=rng)
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+
+--- PHASE 2: 1130.0K EQUILIBRATION (Bussi CSVR) ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_vs_pipeline.py:251: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=TARGET_TEMP, rng=rng)
+
+--- PHASE 3a: 1130.0K NVE BURN-IN (80 ps) ---
+
+--- PHASE 3b: 1130.0K NVE PRODUCTION (70 ps) ---
+NVE Production complete.
+
+--- PHASE 4: SPEED OF SOUND CALCULATION ---
+Adiabatic Speed of Sound (c_s): 1591.02 m/s
+Result saved to Vs_0.5NaCl-0.5KCl_seed_43_1130K.txt
+
+--- PHASE 5: VDOS CALCULATION AND MODE OVERLAP ---
+Extracting VDOS for Na...
+Extracting VDOS for K...
+VDOS curves saved to VDOS_0.5NaCl-0.5KCl_1130K.csv
+VDOS Mode Matching (Na and K): 75.71%
+Phonon Transfer Factor (b_PH) saved to b_PH_0.5NaCl-0.5KCl_seed_43_1130K.txt

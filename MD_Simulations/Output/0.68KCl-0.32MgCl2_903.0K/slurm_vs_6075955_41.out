@@ -1,0 +1,106 @@
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# INITIALIZING 068KCl-032MgCl2 Vs ARRAY (SEED 41)
+# =========================================================
+Target Temp: 903.0 K | Density: 1.6332583024000003 g/cm^3
+Structure Base: Fluorite | Total Atoms: 251
+
+--- PHASE 0: GEOMETRY OPTIMIZATION ---
+      Step     Time          Energy          fmax
+FIRE:    0 15:43:07     -741.195374        3.718625
+FIRE:    1 15:43:08     -745.764038        3.761033
+FIRE:    2 15:43:19     -750.240662        3.790602
+FIRE:    3 15:43:20     -754.631409        3.806365
+FIRE:    4 15:43:20     -758.938416        3.807434
+FIRE:    5 15:43:20     -763.164612        3.793006
+FIRE:    6 15:43:21     -767.309692        3.762374
+FIRE:    7 15:43:21     -771.372559        3.715019
+FIRE:    8 15:43:21     -775.352051        3.650643
+FIRE:    9 15:43:21     -779.244263        3.569226
+FIRE:   10 15:43:21     -783.045532        3.471059
+FIRE:   11 15:43:21     -786.750977        3.356788
+FIRE:   12 15:43:21     -790.356140        3.227360
+FIRE:   13 15:43:21     -793.853638        3.084090
+FIRE:   14 15:43:21     -797.238525        2.928670
+FIRE:   15 15:43:21     -800.504822        2.765091
+FIRE:   16 15:43:21     -803.646362        2.705402
+FIRE:   17 15:43:21     -806.659302        2.621251
+FIRE:   18 15:43:21     -809.539673        2.509516
+FIRE:   19 15:43:21     -812.287903        2.367854
+FIRE:   20 15:43:22     -814.904114        2.196035
+FIRE:   21 15:43:22     -817.392578        2.132492
+FIRE:   22 15:43:22     -819.759949        2.047175
+FIRE:   23 15:43:22     -822.015381        1.934279
+FIRE:   24 15:43:22     -824.168274        1.870486
+FIRE:   25 15:43:22     -826.228821        1.816275
+FIRE:   26 15:43:22     -828.204468        1.789952
+FIRE:   27 15:43:22     -830.102905        1.763449
+FIRE:   28 15:43:22     -831.927002        1.734022
+FIRE:   29 15:43:22     -833.677124        1.703352
+FIRE:   30 15:43:22     -835.354126        1.672201
+FIRE:   31 15:43:22     -836.954102        1.639487
+FIRE:   32 15:43:22     -838.475464        1.601682
+FIRE:   33 15:43:22     -839.917236        1.552843
+FIRE:   34 15:43:22     -841.280762        1.485208
+FIRE:   35 15:43:22     -842.568420        1.390330
+FIRE:   36 15:43:22     -843.785828        1.260655
+FIRE:   37 15:43:22     -844.939636        1.142888
+FIRE:   38 15:43:22     -846.037109        1.211996
+FIRE:   39 15:43:22     -847.086975        1.288286
+FIRE:   40 15:43:22     -848.096497        1.372268
+FIRE:   41 15:43:22     -849.073608        1.463886
+FIRE:   42 15:43:22     -850.025208        1.562122
+FIRE:   43 15:43:22     -850.955322        1.664344
+FIRE:   44 15:43:22     -851.869141        1.765080
+FIRE:   45 15:43:22     -852.766418        1.854053
+FIRE:   46 15:43:22     -853.644653        1.914238
+FIRE:   47 15:43:22     -854.498901        1.921478
+FIRE:   48 15:43:22     -855.320435        1.844127
+FIRE:   49 15:43:22     -856.100952        1.639341
+FIRE:   50 15:43:23     -856.828064        1.251289
+FIRE:   51 15:43:23     -857.487915        1.122039
+FIRE:   52 15:43:23     -858.066711        1.409691
+FIRE:   53 15:43:23     -858.564880        2.419156
+FIRE:   54 15:43:23     -859.006592        3.358879
+FIRE:   55 15:43:23     -859.438293        3.894433
+FIRE:   56 15:43:23     -859.900513        3.726692
+FIRE:   57 15:43:23     -860.391418        3.409318
+FIRE:   58 15:43:23     -860.864014        2.638799
+FIRE:   59 15:43:23     -861.276855        2.862272
+FIRE:   60 15:43:23     -861.644287        3.741961
+FIRE:   61 15:43:23     -862.029297        4.111426
+FIRE:   62 15:43:23     -862.477295        3.816006
+FIRE:   63 15:43:23     -862.977295        3.108784
+FIRE:   64 15:43:23     -863.477783        2.074522
+FIRE:   65 15:43:23     -863.933716        0.996992
+
+--- PHASE 1: 2500K MELT (Langevin NVT) ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_vs_pipeline.py:233: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=MELT_TEMP, rng=rng)
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+
+--- PHASE 2: 903.0K EQUILIBRATION (Bussi CSVR) ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_vs_pipeline.py:251: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=TARGET_TEMP, rng=rng)
+
+--- PHASE 3a: 903.0K NVE BURN-IN (80 ps) ---
+
+--- PHASE 3b: 903.0K NVE PRODUCTION (70 ps) ---
+NVE Production complete.
+
+--- PHASE 4: SPEED OF SOUND CALCULATION ---
+Adiabatic Speed of Sound (c_s): 1489.26 m/s
+Result saved to Vs_0.68KCl-0.32MgCl2_seed_41_903K.txt
+
+--- PHASE 5: VDOS CALCULATION AND MODE OVERLAP ---
+Extracting VDOS for K...
+Extracting VDOS for Mg...
+VDOS curves saved to VDOS_0.68KCl-0.32MgCl2_903K.csv
+VDOS Mode Matching (K and Mg): 38.71%
+Phonon Transfer Factor (b_PH) saved to b_PH_0.68KCl-0.32MgCl2_seed_41_903K.txt

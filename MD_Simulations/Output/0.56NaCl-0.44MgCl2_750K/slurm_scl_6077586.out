@@ -1,0 +1,253 @@
+Anaconda3 version 2021.05
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# SYSTEM PARAMETERS
+# =========================================================
+TEMP_K = 750.0
+SYSTEM_NAME = '0.43KCl-0.57MgCl2'
+TRAJ_FILE = '0.43KCl-0.57MgCl2_750.0K.extxyz'
+
+# Atom Counts
+n_k = 46
+n_mg = 62
+n_cl = 170
+total_atoms = 278
+Structure Base = Fluorite
+
+# =========================================================
+# PHASE 0-3: MACE MD SIMULATION
+# =========================================================
+# Assign Cations
+# Assign 170 Cl and create vacancies
+# Scale to initial density (1.7378694099999998 g/cm3)
+
+--- PHASE 0: GEOMETRY OPTIMIZATION ---
+      Step     Time          Energy          fmax
+FIRE:    0 10:49:04     -832.674072        3.109007
+FIRE:    1 10:49:05     -837.252563        3.072683
+FIRE:    2 10:49:22     -841.781860        3.066740
+FIRE:    3 10:49:22     -846.260742        3.072275
+FIRE:    4 10:49:22     -850.686279        3.064309
+FIRE:    5 10:49:22     -855.056030        3.042417
+FIRE:    6 10:49:22     -859.367188        3.006262
+FIRE:    7 10:49:22     -863.616699        2.968225
+FIRE:    8 10:49:22     -867.800049        2.924984
+FIRE:    9 10:49:23     -871.912354        2.865787
+FIRE:   10 10:49:24     -875.951538        2.789489
+FIRE:   11 10:49:24     -879.910400        2.695104
+FIRE:   12 10:49:24     -883.784424        2.581862
+FIRE:   13 10:49:24     -887.567139        2.516578
+FIRE:   14 10:49:24     -891.251709        2.518458
+FIRE:   15 10:49:24     -894.832153        2.509531
+FIRE:   16 10:49:24     -898.302124        2.489326
+FIRE:   17 10:49:24     -901.655273        2.457436
+FIRE:   18 10:49:24     -904.885864        2.413552
+FIRE:   19 10:49:24     -907.988403        2.357443
+FIRE:   20 10:49:24     -910.959351        2.288971
+FIRE:   21 10:49:24     -913.796021        2.208080
+FIRE:   22 10:49:25     -916.498535        2.114819
+FIRE:   23 10:49:25     -919.068115        2.009356
+FIRE:   24 10:49:25     -921.507935        1.961268
+FIRE:   25 10:49:25     -923.825317        1.941429
+FIRE:   26 10:49:25     -926.026611        1.904628
+FIRE:   27 10:49:25     -928.121338        1.850040
+FIRE:   28 10:49:25     -930.118896        1.777446
+FIRE:   29 10:49:25     -932.028320        1.687375
+FIRE:   30 10:49:25     -933.858154        1.581254
+FIRE:   31 10:49:25     -935.615601        1.461599
+FIRE:   32 10:49:25     -937.302979        1.402693
+FIRE:   33 10:49:25     -938.923218        1.366232
+FIRE:   34 10:49:25     -940.475952        1.325138
+FIRE:   35 10:49:25     -941.963379        1.279279
+FIRE:   36 10:49:25     -943.386963        1.254052
+FIRE:   37 10:49:25     -944.749268        1.231970
+FIRE:   38 10:49:25     -946.054565        1.200055
+FIRE:   39 10:49:25     -947.306519        1.156543
+FIRE:   40 10:49:25     -948.508545        1.099719
+FIRE:   41 10:49:25     -949.664185        1.028107
+FIRE:   42 10:49:25     -950.776367        0.966168
+FIRE:   43 10:49:25     -951.847290        0.937672
+FIRE:   44 10:49:25     -952.879150        0.891975
+FIRE:   45 10:49:25     -953.873901        0.850631
+FIRE:   46 10:49:25     -954.834473        0.857213
+FIRE:   47 10:49:25     -955.763184        0.863138
+FIRE:   48 10:49:26     -956.663818        0.867506
+FIRE:   49 10:49:26     -957.539429        0.872712
+FIRE:   50 10:49:26     -958.393188        0.923806
+FIRE:   51 10:49:26     -959.227173        0.939940
+FIRE:   52 10:49:26     -960.041504        0.923570
+FIRE:   53 10:49:26     -960.837280        0.880537
+FIRE:   54 10:49:26     -961.610840        0.818947
+FIRE:   55 10:49:26     -962.360840        0.764488
+FIRE:   56 10:49:26     -963.084106        0.740944
+FIRE:   57 10:49:26     -963.778320        0.740998
+FIRE:   58 10:49:26     -964.441040        0.761770
+FIRE:   59 10:49:26     -965.073975        0.811973
+FIRE:   60 10:49:26     -965.678101        0.849723
+FIRE:   61 10:49:26     -966.259644        0.872217
+FIRE:   62 10:49:26     -966.825684        0.878353
+FIRE:   63 10:49:26     -967.385742        1.096575
+FIRE:   64 10:49:26     -967.948730        1.264361
+FIRE:   65 10:49:26     -968.521729        1.346102
+FIRE:   66 10:49:26     -969.105347        1.329038
+FIRE:   67 10:49:26     -969.695190        1.217777
+FIRE:   68 10:49:26     -970.281250        1.033263
+FIRE:   69 10:49:26     -970.853516        0.807900
+FIRE:   70 10:49:26     -971.402710        0.677197
+FIRE:   71 10:49:26     -971.925293        0.757197
+FIRE:   72 10:49:26     -972.419922        0.848300
+FIRE:   73 10:49:26     -972.890503        0.904190
+FIRE:   74 10:49:26     -973.342529        0.917766
+FIRE:   75 10:49:27     -973.781372        0.907386
+FIRE:   76 10:49:27     -974.213135        1.136946
+FIRE:   77 10:49:27     -974.643188        1.317022
+FIRE:   78 10:49:27     -975.073730        1.415025
+FIRE:   79 10:49:27     -975.508057        1.437631
+FIRE:   80 10:49:27     -975.942993        1.377826
+FIRE:   81 10:49:27     -976.374512        1.229399
+FIRE:   82 10:49:27     -976.796143        1.020406
+FIRE:   83 10:49:27     -977.203003        0.782393
+FIRE:   84 10:49:27     -977.588989        0.734748
+FIRE:   85 10:49:27     -977.954956        0.702010
+FIRE:   86 10:49:27     -978.299438        0.643982
+FIRE:   87 10:49:27     -978.625854        0.797414
+FIRE:   88 10:49:27     -978.939819        0.950083
+FIRE:   89 10:49:27     -979.246582        1.082641
+FIRE:   90 10:49:27     -979.553467        1.174634
+FIRE:   91 10:49:27     -979.864258        1.209104
+FIRE:   92 10:49:27     -980.183350        1.176965
+FIRE:   93 10:49:27     -980.509155        1.079408
+FIRE:   94 10:49:27     -980.838623        1.015703
+FIRE:   95 10:49:27     -981.166260        0.915105
+FIRE:   96 10:49:27     -981.485352        0.788375
+FIRE:   97 10:49:27     -981.789917        0.717731
+FIRE:   98 10:49:27     -982.075928        0.698937
+FIRE:   99 10:49:27     -982.342407        0.663421
+FIRE:  100 10:49:27     -982.589844        0.723342
+FIRE:  101 10:49:28     -982.823730        0.857578
+FIRE:  102 10:49:28     -983.049316        0.962258
+FIRE:  103 10:49:28     -983.272217        1.023020
+FIRE:  104 10:49:28     -983.498535        1.030439
+FIRE:  105 10:49:28     -983.731323        0.982485
+FIRE:  106 10:49:28     -983.972290        0.884933
+FIRE:  107 10:49:28     -984.220337        0.915299
+FIRE:  108 10:49:28     -984.472778        0.910002
+FIRE:  109 10:49:28     -984.725342        0.858544
+FIRE:  110 10:49:28     -984.975220        0.765204
+FIRE:  111 10:49:28     -985.218262        0.639585
+FIRE:  112 10:49:28     -985.452515        0.605956
+FIRE:  113 10:49:28     -985.675415        0.594072
+FIRE:  114 10:49:28     -985.888184        0.571788
+FIRE:  115 10:49:28     -986.089478        0.539320
+FIRE:  116 10:49:28     -986.282593        0.581953
+FIRE:  117 10:49:28     -986.466919        0.658570
+FIRE:  118 10:49:28     -986.645142        0.712576
+FIRE:  119 10:49:28     -986.819092        0.755048
+FIRE:  120 10:49:28     -986.988892        0.795006
+FIRE:  121 10:49:28     -987.156372        0.796115
+FIRE:  122 10:49:28     -987.322144        0.760411
+FIRE:  123 10:49:28     -987.486938        0.710360
+FIRE:  124 10:49:28     -987.652222        0.799812
+FIRE:  125 10:49:28     -987.819580        0.958937
+FIRE:  126 10:49:28     -987.991211        1.075180
+FIRE:  127 10:49:28     -988.168823        1.128271
+FIRE:  128 10:49:29     -988.353027        1.108086
+FIRE:  129 10:49:29     -988.542358        1.017035
+FIRE:  130 10:49:29     -988.734009        0.868801
+FIRE:  131 10:49:29     -988.926025        0.685845
+FIRE:  132 10:49:29     -989.115356        0.617693
+FIRE:  133 10:49:29     -989.299683        0.613032
+FIRE:  134 10:49:29     -989.478638        0.612500
+FIRE:  135 10:49:29     -989.653442        0.577521
+FIRE:  136 10:49:29     -989.824219        0.578789
+FIRE:  137 10:49:29     -989.993286        0.576939
+FIRE:  138 10:49:29     -990.161255        0.567409
+FIRE:  139 10:49:29     -990.328735        0.633316
+FIRE:  140 10:49:29     -990.497559        0.674606
+FIRE:  141 10:49:29     -990.665283        0.693086
+FIRE:  142 10:49:29     -990.833496        0.690729
+FIRE:  143 10:49:29     -991.000732        0.669116
+FIRE:  144 10:49:29     -991.166626        0.629527
+FIRE:  145 10:49:29     -991.332153        0.593549
+FIRE:  146 10:49:29     -991.497803        0.697407
+FIRE:  147 10:49:29     -991.663696        0.779871
+FIRE:  148 10:49:29     -991.831787        0.835272
+FIRE:  149 10:49:29     -992.001465        0.859294
+FIRE:  150 10:49:29     -992.171631        0.849512
+FIRE:  151 10:49:29     -992.340576        0.805722
+FIRE:  152 10:49:29     -992.506714        0.729807
+FIRE:  153 10:49:29     -992.666016        0.625401
+FIRE:  154 10:49:30     -992.815430        0.552183
+FIRE:  155 10:49:30     -992.953613        0.602873
+FIRE:  156 10:49:30     -993.079346        0.727013
+FIRE:  157 10:49:30     -993.192749        0.832216
+FIRE:  158 10:49:30     -993.295654        0.907108
+FIRE:  159 10:49:30     -993.390015        0.943287
+FIRE:  160 10:49:30     -993.479614        0.937345
+FIRE:  161 10:49:30     -993.567139        0.967986
+FIRE:  162 10:49:30     -993.658081        1.038379
+FIRE:  163 10:49:30     -993.755249        1.044686
+FIRE:  164 10:49:30     -993.860352        0.983236
+FIRE:  165 10:49:30     -993.972900        0.871817
+FIRE:  166 10:49:30     -994.091187        1.015931
+FIRE:  167 10:49:30     -994.213623        1.120473
+FIRE:  168 10:49:30     -994.337158        1.151290
+FIRE:  169 10:49:30     -994.457764        1.096363
+FIRE:  170 10:49:30     -994.573608        0.959388
+FIRE:  171 10:49:30     -994.680542        0.774163
+FIRE:  172 10:49:30     -994.776001        0.845724
+FIRE:  173 10:49:30     -994.860474        0.884874
+FIRE:  174 10:49:30     -994.932373        0.876427
+FIRE:  175 10:49:30     -994.994995        0.819410
+FIRE:  176 10:49:30     -995.050049        0.719368
+FIRE:  177 10:49:30     -995.098633        0.721526
+FIRE:  178 10:49:30     -995.141846        0.760336
+FIRE:  179 10:49:30     -995.179077        0.833048
+FIRE:  180 10:49:30     -995.211060        0.857939
+FIRE:  181 10:49:31     -995.237671        0.839008
+FIRE:  182 10:49:31     -995.761353        0.377233
+
+--- PHASE 1: 2500K MELT ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_scl_pipeline.py:194: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=2500)
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+Restoring true Lithium mass (6.94 amu) for valid dynamic calculation...
+
+--- PHASE 2: 750.0K NPT EQUILIBRATION ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_scl_pipeline.py:209: FutureWarning: NPT thermostat has been moved/renamed to ase.md.melchionna.MelchionnaNPT. Please use this class instead (or a newer NPT thermostat!)
+  dyn_npt = NPT(atoms, timestep=1.0 * units.fs, temperature_K=TEMP_K, externalstress=p_ext,
+
+--- PHASE 3: 750.0K NVT PRODUCTION FOR RDF (Box Size: 20.51 Å) ---
+
+MD Complete! Starting SCL Analysis via MDAnalysis...
+Reading 0.43KCl-0.57MgCl2_750.0K.extxyz into memory...
+Calculating all pairwise RDFs...
+
+--- SCL CALCULATION ---
+
+Analyzing Pair: K-Cl
+  Transfer Step (r_peak): 3.176 A
+  First Minimum (Cutoff): 4.804 A
+  Peak Height: 0.392 | Minimum Depth: 0.087
+  Individual SCL: 3.194 A (Weight: 0.426)
+
+Analyzing Pair: Mg-Cl
+  Transfer Step (r_peak): 2.389 A
+  First Minimum (Cutoff): 3.439 A
+  Peak Height: 1.529 | Minimum Depth: 0.042
+  Individual SCL: 2.768 A (Weight: 0.574)
+
+Average SCL: 2.9494 A
+
+--- PHASE 5.5: EXTRACTING CND & BAD ---
+Analyzing local geometry over 200 frames...
+Saved raw CND data to CND_0.43KCl-0.57MgCl2_750K.csv
+Saved raw BAD data to BAD_0.43KCl-0.57MgCl2_750K.csv
+Pipeline data successfully saved to scl_0.43KCl-0.57MgCl2_750K.txt
+Plots saved to '0.43KCl-0.57MgCl2_750.0K_SCL_Results.png'.
