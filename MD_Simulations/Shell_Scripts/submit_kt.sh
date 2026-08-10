@@ -6,7 +6,7 @@
 #SBATCH --gpus=1                       # <--- FIX THIS
 #SBATCH --gres=gpu:1
 #SBATCH --output=slurm_kt_%j.out
-#SBATCH --time=03:00:00                
+#SBATCH --time=04:00:00                
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2          # <--- INCREASED from 1 to speed up neighbor lists

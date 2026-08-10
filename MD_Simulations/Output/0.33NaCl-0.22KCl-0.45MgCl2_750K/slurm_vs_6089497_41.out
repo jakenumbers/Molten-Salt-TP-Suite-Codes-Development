@@ -1,0 +1,86 @@
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# INITIALIZING 033NaCl-022KCl-045MgCl2 Vs ARRAY (SEED 41)
+# =========================================================
+Target Temp: 750.0 K | Density: 1.7574925947892 g/cm^3
+Structure Base: Fluorite | Total Atoms: 264
+
+--- PHASE 0: GEOMETRY OPTIMIZATION ---
+      Step     Time          Energy          fmax
+FIRE:    0 00:46:08     -800.639343        2.996485
+FIRE:    1 00:46:09     -805.300903        2.982437
+FIRE:    2 00:46:25     -809.854126        2.952518
+FIRE:    3 00:46:25     -814.302246        2.905507
+FIRE:    4 00:46:26     -818.646606        2.840366
+FIRE:    5 00:46:27     -822.886047        2.756303
+FIRE:    6 00:46:27     -827.019531        2.684836
+FIRE:    7 00:46:27     -831.043335        2.660556
+FIRE:    8 00:46:27     -834.954895        2.625967
+FIRE:    9 00:46:27     -838.750977        2.579206
+FIRE:   10 00:46:27     -842.427002        2.518097
+FIRE:   11 00:46:27     -845.980469        2.440183
+FIRE:   12 00:46:27     -849.408020        2.343507
+FIRE:   13 00:46:27     -852.707703        2.276216
+FIRE:   14 00:46:27     -855.876709        2.200583
+FIRE:   15 00:46:27     -858.915161        2.115868
+FIRE:   16 00:46:27     -861.823303        2.021422
+FIRE:   17 00:46:28     -864.601746        1.918247
+FIRE:   18 00:46:28     -867.253113        1.902418
+FIRE:   19 00:46:28     -869.780212        1.868733
+FIRE:   20 00:46:28     -872.185852        1.812575
+FIRE:   21 00:46:28     -874.478577        1.731431
+FIRE:   22 00:46:28     -876.663513        1.624721
+FIRE:   23 00:46:28     -878.748718        1.493398
+FIRE:   24 00:46:28     -880.742126        1.478066
+FIRE:   25 00:46:28     -882.649536        1.469614
+FIRE:   26 00:46:28     -884.474915        1.390115
+FIRE:   27 00:46:28     -886.221985        1.339066
+FIRE:   28 00:46:28     -887.892639        1.367332
+FIRE:   29 00:46:28     -889.490356        1.405579
+FIRE:   30 00:46:28     -891.018066        1.437910
+FIRE:   31 00:46:28     -892.480530        1.492603
+FIRE:   32 00:46:28     -893.882812        1.574355
+FIRE:   33 00:46:28     -895.228455        1.650679
+FIRE:   34 00:46:28     -896.520752        1.716466
+FIRE:   35 00:46:28     -897.762390        1.765138
+FIRE:   36 00:46:28     -898.953979        1.788297
+FIRE:   37 00:46:28     -900.095520        1.775253
+FIRE:   38 00:46:28     -901.184448        1.712392
+FIRE:   39 00:46:28     -902.220459        1.582572
+FIRE:   40 00:46:28     -903.200500        1.365015
+FIRE:   41 00:46:28     -904.123718        1.036845
+FIRE:   42 00:46:28     -904.986328        0.786221
+
+--- PHASE 1: 2500K MELT (Langevin NVT) ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_vs_pipeline.py:233: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=MELT_TEMP, rng=rng)
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+
+--- PHASE 2: 750.0K EQUILIBRATION (Bussi CSVR) ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_vs_pipeline.py:251: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=TARGET_TEMP, rng=rng)
+
+--- PHASE 3a: 750.0K NVE BURN-IN (80 ps) ---
+
+--- PHASE 3b: 750.0K NVE PRODUCTION (70 ps) ---
+NVE Production complete.
+
+--- PHASE 4: SPEED OF SOUND CALCULATION ---
+Adiabatic Speed of Sound (c_s): 1406.76 m/s
+Result saved to Vs_0.33NaCl-0.22KCl-0.45MgCl2_seed_41_750K.txt
+
+--- PHASE 5: VDOS CALCULATION AND MODE OVERLAP ---
+Extracting VDOS for Na...
+Extracting VDOS for K...
+Extracting VDOS for Mg...
+VDOS curves saved to VDOS_0.33NaCl-0.22KCl-0.45MgCl2_750K.csv
+VDOS Mode Matching (Na and K): 76.77%
+VDOS Mode Matching (Na and Mg): 50.73%
+VDOS Mode Matching (K and Mg): 39.64%
+Phonon Transfer Factor (b_PH) saved to b_PH_0.33NaCl-0.22KCl-0.45MgCl2_seed_41_750K.txt

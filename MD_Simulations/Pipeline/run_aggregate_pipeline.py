@@ -102,6 +102,11 @@ def main():
 
     # Thermodynamic Conversions
     cv_v = cp_v - (args.temp * (alpha**2) * kt_pa)
+    if cv_v <= 0:
+        raise ValueError(
+            f"Unphysical Cv={cv_v:.6e} J/(m^3 K). "
+            "Check Cp, alpha, Kt, unit conversions, and fitting quality."
+        )
     
     # Gruneisen Parameter (gamma = alpha * K_T / C_v)
     gamma = (alpha * kt_pa) / cv_v

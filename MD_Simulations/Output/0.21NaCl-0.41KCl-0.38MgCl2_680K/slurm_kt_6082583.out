@@ -1,0 +1,85 @@
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/mace/calculators/mace.py:199: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+WARNING:root:No dtype selected, switching to float32 to match model dtype.
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+# =========================================================
+# INITIALIZING 021NaCl-041KCl-038MgCl2 BULK MODULUS (Kt)
+# =========================================================
+Target Temp: 680.0 K | Density: 1.7804454667062002 g/cm^3
+Structure Base: Fluorite | Total Atoms: 257
+
+--- PHASE 0: GEOMETRY OPTIMIZATION ---
+      Step     Time          Energy          fmax
+FIRE:    0 08:32:00     -767.838013        3.075605
+FIRE:    1 08:32:01     -772.752625        3.026272
+FIRE:    2 08:32:17     -777.541931        2.993593
+FIRE:    3 08:32:17     -782.208984        2.951058
+FIRE:    4 08:32:17     -786.755005        2.898684
+FIRE:    5 08:32:18     -791.180420        2.836486
+FIRE:    6 08:32:18     -795.485046        2.796659
+FIRE:    7 08:32:18     -799.667542        2.754381
+FIRE:    8 08:32:19     -803.725220        2.708575
+FIRE:    9 08:32:19     -807.657654        2.658523
+FIRE:   10 08:32:19     -811.460938        2.603477
+FIRE:   11 08:32:19     -815.135071        2.542665
+FIRE:   12 08:32:19     -818.676453        2.475310
+FIRE:   13 08:32:19     -822.084717        2.417309
+FIRE:   14 08:32:19     -825.359009        2.357749
+FIRE:   15 08:32:19     -828.498352        2.287483
+FIRE:   16 08:32:19     -831.503357        2.207172
+FIRE:   17 08:32:19     -834.376526        2.117787
+FIRE:   18 08:32:19     -837.119385        2.020667
+FIRE:   19 08:32:19     -839.734985        1.917616
+FIRE:   20 08:32:19     -842.228577        1.810932
+FIRE:   21 08:32:19     -844.604553        1.703384
+FIRE:   22 08:32:19     -846.871094        1.655252
+FIRE:   23 08:32:19     -849.034729        1.628491
+FIRE:   24 08:32:19     -851.104431        1.592868
+FIRE:   25 08:32:19     -853.087524        1.606672
+FIRE:   26 08:32:19     -854.992188        1.642191
+FIRE:   27 08:32:19     -856.824280        1.667676
+FIRE:   28 08:32:19     -858.587769        1.679495
+FIRE:   29 08:32:19     -860.283997        1.673161
+FIRE:   30 08:32:19     -861.912781        1.643198
+FIRE:   31 08:32:19     -863.472290        1.583080
+FIRE:   32 08:32:19     -864.959595        1.485622
+FIRE:   33 08:32:19     -866.370483        1.343477
+FIRE:   34 08:32:19     -867.703857        1.150237
+FIRE:   35 08:32:19     -868.959290        0.947854
+
+--- PHASE 1: 2500K MELT (Langevin NVT) ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_kt_pipeline.py:184: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=MELT_TEMP, rng=rng)
+/nfs/home/jnumbers/.conda/envs/super_salt_env/lib/python3.14/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+
+--- PHASE 2: COOLING TO TARGET TEMP (680.0 K) ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_kt_pipeline.py:208: FutureWarning: NPT thermostat has been moved/renamed to ase.md.melchionna.MelchionnaNPT. Please use this class instead (or a newer NPT thermostat!)
+  dyn_npt = NPT(atoms, timestep=1.0 * units.fs, temperature_K=TARGET_TEMP, externalstress=pressures_bar[0] * units.bar,
+
+--- PRESSURE SWEEP: 1.01325 bar ---
+/lustre/isaac24/scratch/jnumbers/Molten_Salt_Sims/Pipeline/run_kt_pipeline.py:215: FutureWarning: NPT thermostat has been moved/renamed to ase.md.melchionna.MelchionnaNPT. Please use this class instead (or a newer NPT thermostat!)
+  dyn_npt = NPT(atoms, timestep=1.0 * units.fs, temperature_K=TARGET_TEMP, externalstress=P * units.bar,
+System already equilibrated to 1.01325 bar during cooling phase. Skipping equilibration...
+Production at 1.01325 bar for 50 ps...
+
+--- PRESSURE SWEEP: 1000.0 bar ---
+Equilibrating at 1000.0 bar for 20 ps...
+Production at 1000.0 bar for 50 ps...
+
+--- PRESSURE SWEEP: 2000.0 bar ---
+Equilibrating at 2000.0 bar for 20 ps...
+Production at 2000.0 bar for 50 ps...
+
+--- PRESSURE SWEEP: 3000.0 bar ---
+Equilibrating at 3000.0 bar for 20 ps...
+Production at 3000.0 bar for 50 ps...
+
+MD Pressure Sweep Complete! Starting Analysis...
+
+--- RESULTS ---
+Isothermal Bulk Modulus (K_T) at 680.0 K: 3.246 GPa
+Result saved to Kt_0.21NaCl-0.41KCl-0.38MgCl2_680K.txt
+Job perfectly finished!
