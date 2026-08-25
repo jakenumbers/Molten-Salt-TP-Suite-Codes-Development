@@ -3,7 +3,7 @@ Molten Salt Absorption Coefficient Model Using the Pair Distribution Function
 ==============================================================================
 Implements the methodology from:
     "Model for Molten Salt Absorption Coefficient Using the Pair Distribution
-     Function" — Jacob Numbers
+     Function" -- Jacob Numbers
 
 The total spectral absorption coefficient is:
 
@@ -17,16 +17,30 @@ where:
 Key first-principles inputs (from the pair distribution function):
     omega_0  = sqrt(k / mu)        fundamental frequency from PMF curvature
     r_0                             equilibrium separation from PDF peak
+    sigma_r                         peak width -> inhomogeneous broadening
 
 Fitted parameters:
     gamma_0, gamma'                 damping (Lorentz peak width)
     alpha_anh                       anharmonicity (multiphonon tail slope)
     C0_multi                        multiphonon prefactor (tail magnitude)
 
+Inhomogeneous broadening (no fitted parameters):
+    In a melt, each cation-anion pair oscillates in a slightly different
+    local environment, producing a DISTRIBUTION of fundamental frequencies
+    rather than a single omega_0.  The width of the g(r) first peak encodes
+    this disorder:
+        sigma_r / r_0  -->  sigma_omega / omega_0
+
+    For the multiphonon term, the discrete-p sawtooth is smoothed with
+    a Savitzky-Golay filter whose window scales with sigma_omega/omega_0.
+
+    This introduces NO new fitted parameters -- the broadening comes
+    entirely from the measured PDF.
+
 Two-phase workflow:
-    Phase 1 — Fit salts with experimental absorption data
-    Phase 2 — Predict alpha for unmeasured salts via alpha/omega_0 vs r_0
-              correlation, transfer gamma and C0 from fitted salts
+    Phase 1 -- Fit salts with experimental absorption data
+    Phase 2 -- Predict alpha for unmeasured salts via alpha/omega_0 vs r_0
+               correlation, transfer gamma and C0 from fitted salts
 """
 
 import numpy as np
@@ -39,6 +53,7 @@ from scipy.constants import (
 from scipy import integrate
 from scipy.optimize import minimize
 from scipy.stats import linregress
+from scipy.signal import savgol_filter
 from matplotlib.colors import Normalize, LinearSegmentedColormap
 import mendeleev
 import os
@@ -46,7 +61,7 @@ import shutil
 from typing import Dict, List, Tuple, Optional, Any
 
 # Import configurations and registry from the config file
-from salts_config import SaltConfig, IonPairParams, SALT_REGISTRY
+from salts_config_opt import SaltConfig, IonPairParams, SALT_REGISTRY
 
 # =============================================================================
 # 0. CONSTANTS & PLOT FORMATTING
@@ -67,10 +82,15 @@ plt.rcParams.update({
     "ytick.minor.visible":  True,
 })
 
-c       = c_light                   # speed of light [m/s]
-kB_eV   = k_B / e_charge            # Boltzmann constant [eV/K]
-hc_eV_um = 1.23984193               # h*c in [eV*um]
-WIEN_B  = 2.897771955e-3            # Wien displacement constant [m*K]
+c       = c_light                    # speed of light [m/s]
+kB_eV   = k_B / e_charge             # Boltzmann constant [eV/K]
+hc_eV_um = 1.23984193                # h*c in [eV*um]
+WIEN_B  = 2.897771955e-3             # Wien displacement constant [m*K]
+
+# Maximum fractional broadening sigma_omega / omega_0.
+# Capped at 5% to ensure the pseudo-Voigt approximation remains valid
+# and that the multiphonon Savgol window stays reasonable.
+MAX_SIGMA_FRAC = 0.05
 
 
 # =============================================================================
@@ -197,6 +217,78 @@ def calculate_k_from_pmf(pdf_df: pd.DataFrame, ion_pair_str: str,
     return k_val, r0_angstrom
 
 
+def calculate_sigma_r_from_pdf(pdf_df: pd.DataFrame,
+                               ion_pair_str: str,
+                               r0_angstrom: float) -> float:
+    """
+    Extract sigma_r (the width of the g(r) first peak) from the PDF.
+
+    Uses the left-side (inner) half-width at half-maximum (HWHM) to
+    avoid contamination from the asymmetric right tail (which represents
+    escaped neighbors, not frequency disorder of bound pairs).
+
+    Converts HWHM to Gaussian sigma:  sigma = HWHM / sqrt(2*ln(2))
+
+    Caps the result at MAX_SIGMA_FRAC * r0 to prevent unphysically
+    large broadening.
+
+    Parameters
+    ----------
+    pdf_df       : DataFrame with r_<pair> and rdf_<pair> columns
+    ion_pair_str : e.g. 'Li-F'
+    r0_angstrom  : equilibrium separation [Angstrom]
+
+    Returns
+    -------
+    sigma_r : standard deviation of first peak [Angstrom]
+    """
+    r_col   = f"r_{ion_pair_str}"
+    rdf_col = f"rdf_{ion_pair_str}"
+
+    pair_df = pdf_df[[r_col, rdf_col]].dropna().copy()
+    r_arr   = pair_df[r_col].values
+    rdf_arr = pair_df[rdf_col].values
+
+    # Find the peak
+    peak_idx = np.argmax(rdf_arr)
+    peak_val = rdf_arr[peak_idx]
+
+    if peak_val <= 0:
+        return 0.01 * r0_angstrom  # fallback
+
+    half_max = peak_val / 2.0
+
+    # Find left-side half-maximum crossing (r < r0)
+    left_portion = rdf_arr[:peak_idx]
+    crossings = np.where(left_portion < half_max)[0]
+
+    if len(crossings) > 0:
+        # Last crossing before the peak where g(r) < half_max
+        cross_idx = crossings[-1]
+        # Linear interpolation between cross_idx and cross_idx+1
+        r_lo = r_arr[cross_idx]
+        r_hi = r_arr[cross_idx + 1]
+        g_lo = rdf_arr[cross_idx]
+        g_hi = rdf_arr[cross_idx + 1]
+        if g_hi != g_lo:
+            r_half = r_lo + (half_max - g_lo) / (g_hi - g_lo) * (r_hi - r_lo)
+        else:
+            r_half = r_lo
+        hwhm = r_arr[peak_idx] - r_half
+    else:
+        # Can't find left crossing -- use a small default
+        hwhm = 0.02 * r0_angstrom
+
+    # Convert HWHM to Gaussian sigma
+    sigma_r = hwhm / np.sqrt(2.0 * np.log(2.0))
+
+    # Clamp to physical range
+    sigma_r = max(sigma_r, 0.01 * r0_angstrom)
+    sigma_r = min(sigma_r, MAX_SIGMA_FRAC * r0_angstrom)
+
+    return sigma_r
+
+
 def calculate_oscillator_strengths(ion_pairs: List[IonPairParams],
                                    eps_inf_mixture: float) -> None:
     """
@@ -229,58 +321,36 @@ def bose_einstein(omega0: float, T: float) -> float:
     return 1.0 / (np.exp(x) - 1.0)
 
 
-def alpha_multiphonon(omega: np.ndarray, omega0: float, T: float,
-                      alpha_anh: float, C0: float) -> np.ndarray:
-    """
-    Multiphonon absorption coefficient (exponential tail model).
-
-    Physics:
-        At frequencies omega >> omega_0, photons can only be absorbed by
-        creating multiple phonons simultaneously (n-phonon process).
-        The probability decreases exponentially with the number of phonons,
-        controlled by the anharmonicity parameter alpha.
-
-    Formula:
-        kappa_multi(w, T) = C0 * [n_bar(w0,T) + 1]^p(w) * exp(-alpha * w/w0)
-
-    where:
-        p(w) = max(ceil(w/w0), 2)   minimum phonons needed at frequency w
-        n_bar = Bose-Einstein occupation number at the fundamental frequency
-        alpha = dimensionless anharmonicity (controls exponential decay slope)
-        C0    = prefactor [m^-1] (controls overall magnitude)
-
-    Temperature dependence enters through n_bar (quantum statistics),
-    NOT through fitted parameters — this is first-principles T-dependence.
-
-    Parameters
-    ----------
-    omega     : angular frequency array [rad/s]
-    omega0    : fundamental oscillator frequency from PMF [rad/s]
-    T         : temperature [K]
-    alpha_anh : dimensionless anharmonicity parameter (typically 1-5)
-    C0        : prefactor [m^-1]
-
-    Returns
-    -------
-    kappa_multi : absorption coefficient array [m^-1]
-    """
+def alpha_multiphonon(omega, omega0, T, alpha_anh, C0, sigma_omega=0.0):
     if C0 <= 0 or alpha_anh <= 0 or omega0 <= 0:
         return np.zeros_like(omega)
 
     n_bar = bose_einstein(omega0, T)
     ratio = omega / omega0
-
-    # Minimum number of phonons: p = ceil(w/w0), at least 2 (multiphonon)
     p = np.maximum(np.ceil(ratio).astype(int), 2)
 
-    # Bose factor: stimulated emission weighting [n_bar + 1]^p
-    bose_factor = (n_bar + 1.0) ** p
+    # Compute in log-space to avoid overflow:
+    #   log(kappa) = log(C0) + p*log(n_bar+1) - alpha*ratio
+    log_kappa = (np.log(C0) + p * np.log(n_bar + 1.0) - alpha_anh * ratio)
 
-    # Exponential decay with frequency
-    exp_factor = np.exp(-alpha_anh * ratio)
+    # Clamp to avoid overflow when exponentiating back
+    log_kappa = np.minimum(log_kappa, 60.0)  # exp(60) ~ 1e26, safe
 
-    return C0 * bose_factor * exp_factor
+    kappa = np.exp(log_kappa)
 
+    # Savgol smoothing based on PDF peak width
+    if sigma_omega > 0 and omega0 > 0:
+        frac = sigma_omega / omega0
+        raw_window = int(frac * len(omega) * 0.5)
+        window = max(raw_window, 5)
+        if window % 2 == 0:
+            window += 1
+        if window < len(kappa):
+            polyorder = min(3, window - 1)
+            kappa = savgol_filter(kappa, window, polyorder)
+            kappa = np.maximum(kappa, 0.0)
+
+    return kappa
 
 # =============================================================================
 # 4. CORE ABSORPTION MODEL
@@ -317,7 +387,7 @@ def alpha_vib_from_dielectric(omega: np.ndarray, eps: np.ndarray) -> np.ndarray:
 def alpha_urbach(wl_m: np.ndarray, W0_eV: float, kappa0: float,
                  T: float) -> np.ndarray:
     """
-    Electronic (Urbach) absorption tail — Eq. (3) of the paper:
+    Electronic (Urbach) absorption tail -- Eq. (3) of the paper:
 
         kappa_elec = kappa0 * exp((E - W0) / (kB * T))
 
@@ -367,15 +437,17 @@ def compute_alpha_total(wl_m: np.ndarray, T: float,
         gamma_T    = pair.gamma0 + pair.gamma_slope * T
         delta_eps_T = pair.delta_eps * density_ratio
 
-        # Lorentz oscillator contribution to dielectric function
+        # Lorentz oscillator contribution to dielectric function (unchanged)
         eps_total += lorentz_dielectric(omega, pair.omega0, gamma_T, delta_eps_T)
 
         # Multiphonon contribution (if parameters are set)
         a_anh = getattr(pair, 'alpha_anh', 0.0)
         c0    = getattr(pair, 'C0_multi', 0.0)
         if a_anh > 0 and c0 > 0:
+            # Pass sigma_omega for Savgol smoothing (0 if not set)
+            sig_w = getattr(pair, 'sigma_omega', 0.0)
             kappa_multi_total += alpha_multiphonon(
-                omega, pair.omega0, T, a_anh, c0)
+                omega, pair.omega0, T, a_anh, c0, sigma_omega=sig_w)
 
     # Vibrational absorption from dielectric function
     kappa_vib  = alpha_vib_from_dielectric(omega, eps_total)
@@ -427,7 +499,7 @@ def planck_spectral_radiance(wl_m: np.ndarray, T: float) -> np.ndarray:
 def planck_mean_absorption(wl_m: np.ndarray, alpha_total: np.ndarray,
                            T: float, range_factor: float = 20.0) -> float:
     """
-    Planck-mean absorption coefficient — Eq. (12):
+    Planck-mean absorption coefficient -- Eq. (12):
 
         kappa_P(T) = integral(kappa_lambda * I_bb d_lambda)
                    / integral(I_bb d_lambda)
@@ -479,8 +551,8 @@ def planck_mean_refractive_index(wl_m: np.ndarray, n_total: np.ndarray,
 
 def initialize_salt(salt: SaltConfig) -> None:
     """
-    Initialize a salt: load PDF, extract omega_0 and r_0 for each pair,
-    compute oscillator strengths.
+    Initialize a salt: load PDF, extract omega_0, r_0, and sigma_r
+    for each pair, compute oscillator strengths.
     """
     print(f"\n{'='*60}")
     print(f"Initializing: {salt.name}")
@@ -490,8 +562,10 @@ def initialize_salt(salt: SaltConfig) -> None:
     calculate_oscillator_strengths(salt.ion_pairs, salt.eps_inf_mixture)
 
     print(f"\n  {'Pair':<8} {'k [N/m]':>12} {'w0 [rad/s]':>14} "
-          f"{'lam [um]':>10} {'r0 [A]':>8} {'d_eps':>8}")
-    print(f"  {'-'*8} {'-'*12} {'-'*14} {'-'*10} {'-'*8} {'-'*8}")
+          f"{'lam [um]':>10} {'r0 [A]':>8} {'sig_r [A]':>9} "
+          f"{'sig/r0':>7} {'d_eps':>8}")
+    print(f"  {'-'*8} {'-'*12} {'-'*14} {'-'*10} {'-'*8} {'-'*9} "
+          f"{'-'*7} {'-'*8}")
 
     for pair in salt.ion_pairs:
         pair.k_N_per_m, pair.r0_angstrom = calculate_k_from_pmf(
@@ -500,9 +574,18 @@ def initialize_salt(salt: SaltConfig) -> None:
         pair.omega0 = np.sqrt(pair.k_N_per_m / mu)
         lam_um = 2.0 * pi * c / pair.omega0 * 1e6
 
+        # Extract sigma_r from the PDF peak width
+        pair.sigma_r = calculate_sigma_r_from_pdf(
+            pdf_df, pair.ion_pair_str, pair.r0_angstrom)
+
+        # Convert to frequency spread: sigma_omega / omega_0 ~ sigma_r / r_0
+        frac = pair.sigma_r / pair.r0_angstrom if pair.r0_angstrom > 0 else 0.0
+        pair.sigma_omega = frac * pair.omega0
+
         print(f"  {pair.ion_pair_str:<8} {pair.k_N_per_m:>12.2f} "
               f"{pair.omega0:>14.3e} {lam_um:>10.1f} "
-              f"{pair.r0_angstrom:>8.3f} {pair.delta_eps:>8.3f}")
+              f"{pair.r0_angstrom:>8.3f} {pair.sigma_r:>9.4f} "
+              f"{frac:>7.4f} {pair.delta_eps:>8.3f}")
     print()
 
 
@@ -513,17 +596,17 @@ def fit_gamma_parameters(salt: SaltConfig) -> None:
     Configuration is read from salt.experimental_fit_config, a dict with:
 
         'mode' : str
-            'single'           — fit to one dataset (default)
-            'weighted_average' — fit to weighted combination of datasets
-            'none'             — skip fitting
+            'single'           -- fit to one dataset (default)
+            'weighted_average' -- fit to weighted combination of datasets
+            'none'             -- skip fitting
 
         'fit_target' : str or list
-            'damping' or 'both'     — fit gamma0 + gamma_slope only
-            'gamma0'                — fit gamma0 only
-            'gamma_slope'           — fit gamma_slope only
-            'multiphonon'           — fit alpha_anh + C0_multi only
-            ['gamma_slope', 'alpha_anh', 'C0_multi']                   — fit all four parameters
-            ['gamma0', 'alpha_anh'] — explicit list of parameter names
+            'damping' or 'both'     -- fit gamma0 + gamma_slope only
+            'gamma0'                -- fit gamma0 only
+            'gamma_slope'           -- fit gamma_slope only
+            'multiphonon'           -- fit alpha_anh + C0_multi only
+            'all'                   -- fit gamma0, gamma_slope, alpha_anh, C0_multi
+            ['gamma_slope', 'alpha_anh', 'C0_multi']  -- explicit list
 
         'dataset_index' : int  (used when mode='single', default 0)
 
@@ -545,7 +628,7 @@ def fit_gamma_parameters(salt: SaltConfig) -> None:
         return
 
     # --- Resolve which parameters to fit ---
-    ALLOWED_PARAMS = ['gamma_slope', 'alpha_anh', 'C0_multi']
+    ALLOWED_PARAMS = ['gamma0', 'gamma_slope', 'alpha_anh', 'C0_multi']
 
     if isinstance(fit_target, str):
         ftl = fit_target.lower()
@@ -557,7 +640,7 @@ def fit_gamma_parameters(salt: SaltConfig) -> None:
             'gamma':       ['gamma0'],
             'gamma_slope': ['gamma_slope'],
             'multiphonon': ['alpha_anh', 'C0_multi'],
-            ['gamma_slope', 'alpha_anh', 'C0_multi']:         ['gamma_slope', 'alpha_anh', 'C0_multi'],
+            'all':         ['gamma0', 'gamma_slope', 'alpha_anh', 'C0_multi'],
         }
         fit_params = FIT_MAP.get(ftl, [])
         if not fit_params and ftl not in FIT_MAP:
@@ -727,7 +810,7 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
                              show_all_planck=True):
     """Plot spectral absorption coefficient vs wavelength for all temperatures."""
     if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
+        fig, ax = plt.subplots(figsize=(6,4), constrained_layout=True)
     else:
         fig = ax.figure
 
@@ -753,9 +836,9 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
         for wl_peak, label in salt.ir_peaks_um:
             ax.axvline(x=wl_peak, color='gray', linestyle='--',
                        alpha=0.5, linewidth=0.8, zorder=1)
-            ax.text(wl_peak + 0.5, 0.85, label,
+            ax.text(wl_peak + 0.6, 0.25, label,
                     transform=ax.get_xaxis_transform(),
-                    rotation=90, fontsize=8, color='gray', va='top', zorder=2)
+                    rotation=90, fontsize=9, color='gray', va='top', zorder=2)
 
     # Planck curves and experimental data
     if show_planck:
@@ -779,16 +862,16 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
 
         # Experimental data points
         if salt.experimental_data:
-            clrs = ['red', 'blue', 'green', 'orange', 'purple',
-                    'brown', 'pink', 'gray']
+            clrs = ['yellow','green','pink','red', 'blue', 'orange', 
+                    'brown','gray']
             mkrs = ['o', 's', '^', 'v', 'D', '*', 'P', 'X']
             for i, exp in enumerate(salt.experimental_data):
                 if exp.get('wavelength_um'):
                     ax.scatter(exp['wavelength_um'], exp['absorption_m1'],
                                color=clrs[i % len(clrs)],
                                marker=mkrs[i % len(mkrs)],
-                               s=50, zorder=5, edgecolors='black',
-                               linewidth=0.5, alpha=0.6,
+                               s=25, zorder=5, edgecolors='black',
+                               linewidth=0.5, alpha=0.8,
                                label=exp.get('label', f'Exp {i+1}'))
 
         ax2.set_yscale('log')
@@ -800,7 +883,7 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
         lines1, labels1 = ax.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax2.legend(lines1 + lines2, labels1 + labels2,
-                   loc='upper right', fontsize=8, framealpha=0.9,
+                   loc='upper right', fontsize=9, framealpha=0.9,
                    edgecolor='black')
     else:
         if salt.experimental_data:
@@ -811,10 +894,10 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
                     ax.scatter(exp['wavelength_um'], exp['absorption_m1'],
                                color=clrs[i % len(clrs)],
                                marker=mkrs[i % len(mkrs)],
-                               s=50, zorder=5, edgecolors='black',
+                               s=25, zorder=5, edgecolors='black',
                                linewidth=0.5, alpha=0.6,
                                label=exp.get('label', f'Exp {i+1}'))
-        ax.legend(loc='upper right', fontsize=8, framealpha=0.9,
+        ax.legend(loc='upper right', fontsize=9, framealpha=0.9,
                   edgecolor='black')
 
     ax.set_xlabel('Wavelength ($\\mu$m)')
@@ -827,7 +910,7 @@ def plot_absorption_spectrum(salt, wl_m, T_list, alpha_results,
 def plot_refractive_index(salt, wl_m, T_list, n_results, ax=None):
     """Plot refractive index vs wavelength for all temperatures."""
     if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
+        fig, ax = plt.subplots(figsize=(6,4), constrained_layout=True)
     else:
         fig = ax.figure
 
@@ -850,7 +933,9 @@ def plot_refractive_index(salt, wl_m, T_list, n_results, ax=None):
         exp_n_data = salt.experimental_n
         if isinstance(exp_n_data, dict):
             exp_n_data = [exp_n_data]
-        clrs = ['red', 'blue', 'green', 'orange']
+        # Use marker colors that are distinct from the common spectrum line
+        # colors (blue/red) so experimental points are easy to distinguish.
+        clrs = ['purple', 'green', 'orange', 'brown']
         mkrs = ['o', 's', '^', 'v']
         for i, exp in enumerate(exp_n_data):
             if exp is None:
@@ -861,8 +946,8 @@ def plot_refractive_index(salt, wl_m, T_list, n_results, ax=None):
                 ax.scatter(wl_exp, n_exp,
                            color=clrs[i % len(clrs)],
                            marker=mkrs[i % len(mkrs)],
-                           s=50, zorder=5, edgecolors='black',
-                           linewidth=0.5, alpha=0.6,
+                           s=56, zorder=5, edgecolors='black',
+                           linewidth=0.5, alpha=0.65,
                            label=exp.get('label', f'Exp n {i+1}'))
 
     ax.set_xlabel('Wavelength ($\\mu$m)')
@@ -870,7 +955,7 @@ def plot_refractive_index(salt, wl_m, T_list, n_results, ax=None):
     ax.set_xlim(0, wl_um[-1] + 2)
     lines, labels = ax.get_legend_handles_labels()
     if labels:
-        ax.legend(lines, labels, loc='upper right', fontsize=8,
+        ax.legend(lines, labels, loc='upper right', fontsize=9,
                   framealpha=0.9, edgecolor='black')
     return fig
 
@@ -878,7 +963,7 @@ def plot_refractive_index(salt, wl_m, T_list, n_results, ax=None):
 def plot_planck_mean_vs_temperature(salt, T_array, kappa_P_array, ax=None):
     """Plot Planck-mean absorption coefficient vs temperature."""
     if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
+        fig, ax = plt.subplots(figsize=(5,2), constrained_layout=True)
     else:
         fig = ax.figure
 
@@ -903,8 +988,12 @@ def plot_planck_mean_vs_temperature(salt, T_array, kappa_P_array, ax=None):
 
     ax.set_xlabel('Temperature (K)')
     ax.set_ylabel('Planck-mean $\\kappa_P$ (m$^{-1}$)')
-    ax.set_title(f'{salt.name}', fontweight='bold')
+    ax.text(0.4, 0.96, salt.name, transform=ax.transAxes,
+        fontsize=14, fontweight='bold', va='top', ha='left',
+        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=2),
+        zorder=10)
     ax.legend(loc='best', fontsize=9)
+    ax.set_ylim(0,20000)
     return fig
 
 
@@ -913,7 +1002,7 @@ def plot_transferability(all_pair_data: List[Dict], output_dir: str):
     Grouped transferability plot: alpha/omega_0 by ion pair,
     with each point labeled by source salt.
     """
-    fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(6,4), constrained_layout=True)
 
     # Group by ion pair
     pair_groups = {}
@@ -964,18 +1053,23 @@ def plot_transferability(all_pair_data: List[Dict], output_dir: str):
     ax.set_xticklabels(x_labels, fontweight='bold')
     ax.set_xlabel('Ion Pair')
     ax.set_ylabel('$\\alpha/\\omega_0$ ($\\times 10^{-14}$ s)')
-    ax.set_title('Multiphonon Anharmonicity: Transferability Check')
-    ax.legend(loc='upper left', fontsize=8, framealpha=0.9, edgecolor='black')
+    # ax.set_title('Multiphonon Anharmonicity: Transferability Check')
+    ax.legend(loc='upper left', fontsize=9, framealpha=0.9, edgecolor='black')
 
+    fig.savefig(os.path.join(output_dir, 'transferability_alpha_omega0.png'),
+                bbox_inches='tight', dpi=1200)
     fig.savefig(os.path.join(output_dir, 'transferability_alpha_omega0.pdf'),
-                bbox_inches='tight')
+                bbox_inches='tight', dpi=1200)
     return fig
 
 
 def plot_alpha_omega0_vs_r0(all_pair_data: List[Dict],
                             output_dir: str,
                             predicted_data: Optional[List[Dict]] = None,
-                            filename: str = 'alpha_omega0_vs_r0.pdf'):
+                            filename: str = 'alpha_omega0_vs_r0.png',
+                            interactive_labels: bool = False,
+                            label_positions_file: Optional[str] = None,
+                            save_label_positions_file: Optional[str] = None):
     """
     Scatter plot of alpha/omega_0 vs r_0 with linear regression.
 
@@ -985,28 +1079,29 @@ def plot_alpha_omega0_vs_r0(all_pair_data: List[Dict],
     Returns (f_slope, f_intercept, f_r2, cl_intercept) for the regression
     lines, in units of 1e-14 s per Angstrom.
     """
-    fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
 
     # Separate by anion family
     f_data  = [d for d in all_pair_data if d['anion_family'] == 'F']
     cl_data = [d for d in all_pair_data if d['anion_family'] == 'Cl']
 
     # --- Plot fitted points (filled circles) ---
+    import json
+
+    # Plot points and prepare labels. We create annotations which can be
+    # draggable in interactive mode and can be saved/loaded from a JSON file.
+    plotted_points = []  # list of (x, y, text, color, kwargs)
     for d in f_data:
-        ax.scatter(d['r0'], d['ratio'] * 1e14, s=100, c='steelblue',
-                   edgecolors='black', linewidth=0.8, zorder=5)
-        ax.annotate(f"{d['pair']} ({d['salt']})",
-                    (d['r0'], d['ratio'] * 1e14),
-                    textcoords="offset points", xytext=(6, 6),
-                    fontsize=7, color='steelblue')
+        x = d['r0']
+        y = d['ratio'] * 1e14
+        ax.scatter(x, y, s=100, c='steelblue', edgecolors='black', linewidth=0.8, zorder=5)
+        plotted_points.append((x, y, f"{d['pair']} ({d['salt']})", 'steelblue', {'fontsize': 7}))
 
     for d in cl_data:
-        ax.scatter(d['r0'], d['ratio'] * 1e14, s=100, c='firebrick',
-                   edgecolors='black', linewidth=0.8, zorder=5)
-        ax.annotate(f"{d['pair']} ({d['salt']})",
-                    (d['r0'], d['ratio'] * 1e14),
-                    textcoords="offset points", xytext=(6, 6),
-                    fontsize=7, color='firebrick')
+        x = d['r0']
+        y = d['ratio'] * 1e14
+        ax.scatter(x, y, s=100, c='firebrick', edgecolors='black', linewidth=0.8, zorder=5)
+        plotted_points.append((x, y, f"{d['pair']} ({d['salt']})", 'firebrick', {'fontsize': 7}))
 
     # --- Fluoride linear regression ---
     f_slope, f_intercept, f_r2 = 0.0, 0.0, 0.0
@@ -1025,9 +1120,10 @@ def plot_alpha_omega0_vs_r0(all_pair_data: List[Dict],
             min(r0_f.min(), 1.2) - 0.2,
             max(r0_f.max(), 3.0) + 0.4, 100)
         ax.plot(r0_line, slope * r0_line + intercept, '--',
-                color='steelblue', linewidth=1.5,
-                label=(f'F$^-$ fit: $\\alpha/\\omega_0$ = '
-                       f'{slope:.2f}$r_0$ {intercept:+.2f} '
+                color='steelblue', linewidth=1.2,
+                label=(f'F$^-$ fit: '
+                       f'$\\alpha/\\omega_0$ = '
+                       f'{slope:.1f}$r_0$ {intercept:+.1f} '
                        f'($R^2$={f_r2:.3f})'))
 
     # --- Chloride: same slope, shifted intercept ---
@@ -1040,40 +1136,116 @@ def plot_alpha_omega0_vs_r0(all_pair_data: List[Dict],
             min(r0_cl.min(), 2.0) - 0.3,
             max(r0_cl.max(), 3.5) + 0.4, 100)
         ax.plot(r0_line_cl, f_slope * r0_line_cl + cl_intercept, '--',
-                color='firebrick', linewidth=1.5,
+                color='firebrick', linewidth=1.2,
                 label=(f'Cl$^-$ (same slope): '
-                       f'$\\alpha/\\omega_0$ = {f_slope:.2f}$r_0$ '
-                       f'{cl_intercept:+.2f}'))
+                       f'$\\alpha/\\omega_0$ = {f_slope:.1f}$r_0$ '
+                       f'{cl_intercept:+.1f}'))
 
     # --- Plot predicted points (unfilled circles) ---
     if predicted_data:
         for d in predicted_data:
             color = 'steelblue' if d['anion_family'] == 'F' else 'firebrick'
-            ax.scatter(d['r0'], d['ratio'] * 1e14, s=120,
-                       facecolors='none', edgecolors=color,
-                       linewidth=1.5, zorder=6, marker='o')
-            ax.annotate(f"{d['pair']} ({d['salt']})",
-                        (d['r0'], d['ratio'] * 1e14),
-                        textcoords="offset points", xytext=(6, -10),
-                        fontsize=7, color=color, fontstyle='italic')
+            x = d['r0']
+            y = d['ratio'] * 1e14
+            ax.scatter(x, y, s=120, facecolors='none', edgecolors=color,
+                       linewidth=1.2, zorder=6, marker='o')
+            plotted_points.append((x, y, f"{d['pair']} ({d['salt']})", color, {'fontsize': 7, 'fontstyle': 'italic'}))
+
+    # Create annotations. If a label_positions_file is provided, use those
+    # coordinates (data-space) for the text positions. Otherwise place labels
+    # at small offsets from the points. Annotations are created with
+    # arrowprops so the leader line is visible.
+    annotations = []
+    # try to load saved positions
+    saved_positions = {}
+    if label_positions_file:
+        try:
+            with open(label_positions_file, 'r') as f:
+                saved_positions = json.load(f)
+        except Exception:
+            saved_positions = {}
+
+    default_offsets = [(0.08, 0.06), (0.08, -0.06), (-0.08, 0.06), (-0.08, -0.06), (0.14, 0.06), (0.14, -0.06)]
+    for i, (x, y, txt, color, kw) in enumerate(plotted_points):
+        key = txt
+        if key in saved_positions:
+            tx, ty = saved_positions[key]
+        else:
+            dx, dy = default_offsets[i % len(default_offsets)]
+            tx = x + dx
+            ty = y + dy
+
+        ann = ax.annotate(txt, xy=(x, y), xytext=(tx, ty), textcoords='data',
+                          fontsize=kw.get('fontsize', 7), color=color,
+                          arrowprops=dict(arrowstyle='-', color='gray', lw=0.5),
+                          bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='none', alpha=0.8))
+        # make annotation draggable if interactive mode is requested
+        try:
+            ann.set_picker(True)
+            ann.draggable()
+        except Exception:
+            pass
+        annotations.append((txt, ann))
+
+    # Adjust y-limits to comfortably include all data points (with padding).
+    try:
+        y_vals = [y for (_x, y, _t, _c, _kw) in plotted_points]
+        if y_vals:
+            y_min = min(y_vals)
+            y_max = max(y_vals)
+            span = max(y_max - y_min, 1e-6)
+            pad = span * 0.08
+            ax.set_ylim(y_min - pad, y_max + pad)
+    except Exception:
+        pass
+
+    # If interactive_labels is True, show the figure to allow manual repositioning
+    # of annotations. After the window is closed save new positions if requested.
+    if interactive_labels:
+        print('\nInteractive label mode: drag labels to desired positions, then close the figure window to continue.')
+        plt.show()
+        # gather final positions
+        final_positions = {}
+        for key, ann in annotations:
+            try:
+                # get_position returns text position in data coords when textcoords='data'
+                pos = ann.get_position()
+                final_positions[key] = [float(pos[0]), float(pos[1])]
+            except Exception:
+                final_positions[key] = None
+        if save_label_positions_file:
+            try:
+                with open(save_label_positions_file, 'w') as f:
+                    json.dump(final_positions, f, indent=2)
+                print(f"Saved label positions to: {save_label_positions_file}")
+            except Exception as e:
+                print(f"Failed to save label positions: {e}")
 
     # Legend entries
     ax.scatter([], [], s=100, c='gray', edgecolors='black',
                linewidth=0.8, label='Fitted')
     if predicted_data:
-        ax.scatter([], [], s=120, facecolors='none', edgecolors='gray',
-                   linewidth=1.5, label='Predicted')
+        ax.scatter([], [], s=100, facecolors='none', edgecolors='gray',
+                   linewidth=0.8, label='Predicted')
     ax.scatter([], [], s=100, c='steelblue', edgecolors='black',
                linewidth=0.8, label='F$^-$ family')
     ax.scatter([], [], s=100, c='firebrick', edgecolors='black',
                linewidth=0.8, label='Cl$^-$ family')
 
-    ax.set_xlabel('$r_0$ (\\AA)')
+    ax.set_xlabel('$r_0$ ($\\AA$)')
     ax.set_ylabel('$\\alpha/\\omega_0$ ($\\times 10^{-14}$ s)')
-    ax.set_title('Multiphonon Anharmonicity vs. Equilibrium Separation')
-    ax.legend(loc='upper left', fontsize=8, framealpha=0.9, edgecolor='black')
+    # ax.set_title('Multiphonon Anharmonicity vs. Equilibrium Separation')
+    ax.legend(loc='upper left', fontsize=9, framealpha=0.9, edgecolor='black')
+    ax.set_xlim(1.0, 4.0)
+    ax.set_ylim(0.0, 16)
 
-    fig.savefig(os.path.join(output_dir, filename), bbox_inches='tight')
+    # Save both PNG and PDF versions
+    base_name = os.path.splitext(filename)[0]
+    pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
+    png_path = os.path.join(output_dir, f"{base_name}.png")
+    fig.savefig(pdf_path, bbox_inches='tight', dpi=1200)
+    fig.savefig(png_path, bbox_inches='tight', dpi=1200)
+    print(f"  Saved: {pdf_path} and {png_path}")
     return f_slope, f_intercept, f_r2, cl_intercept
 
 
@@ -1118,6 +1290,7 @@ def export_properties_csv(salt: SaltConfig, T_array: np.ndarray,
         a_anh  = getattr(pair, 'alpha_anh', 0.0)
         c0     = getattr(pair, 'C0_multi', 0.0)
         r0     = getattr(pair, 'r0_angstrom', 0.0)
+        sig_r  = getattr(pair, 'sigma_r', 0.0)
         ratio  = a_anh / pair.omega0 if pair.omega0 > 0 and a_anh > 0 else 0.0
 
         new_row[f'{prefix}_omega0_rad_s']       = pair.omega0
@@ -1125,6 +1298,8 @@ def export_properties_csv(salt: SaltConfig, T_array: np.ndarray,
             2.0 * pi * c / pair.omega0 * 1e6 if pair.omega0 > 0 else 0.0)
         new_row[f'{prefix}_k_N_per_m']          = pair.k_N_per_m
         new_row[f'{prefix}_r0_angstrom']        = r0
+        new_row[f'{prefix}_sigma_r_angstrom']   = sig_r
+        new_row[f'{prefix}_sigma_r_over_r0']    = sig_r / r0 if r0 > 0 else 0.0
         new_row[f'{prefix}_gamma0']             = pair.gamma0
         new_row[f'{prefix}_gamma_slope']        = pair.gamma_slope
         new_row[f'{prefix}_alpha_anh']          = a_anh
@@ -1172,7 +1347,7 @@ def run_analysis(salt_name: str,
                  experimental_fit_config: Optional[Dict[str, Any]] = None):
     """
     Full analysis pipeline for a single salt:
-        1. Initialize (load PDF, compute omega_0, r_0)
+        1. Initialize (load PDF, compute omega_0, r_0, sigma_r)
         2. Optionally fit gamma / multiphonon parameters
         3. Compute absorption spectra across temperature range
         4. Compute Planck-mean properties
@@ -1259,19 +1434,28 @@ def run_analysis(salt_name: str,
     fig1 = plot_absorption_spectrum(salt, wl, T_list, alpha_results,
                                     show_all_planck=True)
     fig1.savefig(os.path.join(output_dir,
+                              f"absorption_spectrum_{salt_name}_png.png"),
+                 bbox_inches='tight', dpi=1200)
+    fig1.savefig(os.path.join(output_dir,
                               f"absorption_spectrum_{salt_name}.pdf"),
-                 bbox_inches='tight')
+                 bbox_inches='tight', dpi=1200)
 
     fig2 = plot_refractive_index(salt, wl, T_list, n_results)
     fig2.savefig(os.path.join(output_dir,
+                              f"refractive_index_{salt_name}_png.png"),
+                 bbox_inches='tight', dpi=1200)
+    fig2.savefig(os.path.join(output_dir,
                               f"refractive_index_{salt_name}.pdf"),
-                 bbox_inches='tight')
+                 bbox_inches='tight', dpi=1200)
 
     if len(T_kappa) > 1:
         fig3 = plot_planck_mean_vs_temperature(salt, T_kappa, kappa_P)
         fig3.savefig(os.path.join(output_dir,
+                                  f"planck_mean_{salt_name}_png.png"),
+                     bbox_inches='tight', dpi=1200)
+        fig3.savefig(os.path.join(output_dir,
                                   f"planck_mean_{salt_name}.pdf"),
-                     bbox_inches='tight')
+                     bbox_inches='tight', dpi=1200)
 
     return {
         'salt': salt,
@@ -1344,7 +1528,8 @@ def predict_alpha_from_correlation(r0: float, omega0: float,
 def predict_missing_parameters(pair: IonPairParams,
                                all_pair_data: List[Dict],
                                f_slope: float, f_intercept: float,
-                               cl_intercept: float) -> Dict[str, str]:
+                               cl_intercept: float,
+                               force_predict: bool = False) -> Dict[str, str]:
     """
     Fill in missing parameters for a predicted salt's ion pair.
 
@@ -1361,7 +1546,9 @@ def predict_missing_parameters(pair: IonPairParams,
     sources = {}
 
     # --- alpha_anh: predict from correlation ---
-    a_anh = getattr(pair, 'alpha_anh', 0.0)
+    # If force_predict is True (predicting unmeasured salts), treat config
+    # values as missing so the correlation is always used.
+    a_anh = getattr(pair, 'alpha_anh', 0.0) if not force_predict else 0.0
     if a_anh <= 0 and r0 > 0 and pair.omega0 > 0:
         pair.alpha_anh = predict_alpha_from_correlation(
             r0, pair.omega0, family, f_slope, f_intercept, cl_intercept)
@@ -1373,7 +1560,7 @@ def predict_missing_parameters(pair: IonPairParams,
         sources['alpha_anh'] = 'default (3.0)'
 
     # --- C0_multi ---
-    c0 = getattr(pair, 'C0_multi', 0.0)
+    c0 = getattr(pair, 'C0_multi', 0.0) if not force_predict else 0.0
     if c0 <= 0:
         # Try same ion pair from fitted data
         same_pair = [d['C0_multi'] for d in all_pair_data
@@ -1448,7 +1635,7 @@ def build_correlation(all_pair_data: List[Dict], output_dir: str):
     cl_intercept : chloride intercept (same slope as fluoride)
     """
     f_slope, f_intercept, f_r2, cl_intercept = plot_alpha_omega0_vs_r0(
-        all_pair_data, output_dir, filename='alpha_omega0_vs_r0_fitted.pdf')
+        all_pair_data, output_dir, filename='alpha_omega0_vs_r0_fitted.png')
 
     print(f"\n{'='*60}")
     print(f"  CORRELATION RESULTS")
@@ -1475,8 +1662,8 @@ def run_batch_analysis(
     """
     Two-phase batch analysis:
 
-    Phase 1 — Fit salts with experimental data.
-    Phase 2 — Predict parameters for unmeasured salts using the
+    Phase 1 -- Fit salts with experimental data.
+    Phase 2 -- Predict parameters for unmeasured salts using the
               alpha/omega_0 vs r_0 correlation from Phase 1.
 
     Parameters
@@ -1532,7 +1719,6 @@ def run_batch_analysis(
 
     if not all_pair_data:
         print("\nNo fitted pair data collected. Cannot build correlation.")
-        #plt.show()
         return batch_results
 
     # Transferability plot (fitted data only)
@@ -1546,7 +1732,7 @@ def run_batch_analysis(
     # PHASE 2: PREDICT SALTS USING CORRELATION
     # =====================================================================
     if not prediction_configs:
-        #plt.show()
+        plt.show()
         return batch_results
 
     print("\n" + "=" * 70)
@@ -1581,7 +1767,8 @@ def run_batch_analysis(
         for pair in salt.ion_pairs:
             sources = predict_missing_parameters(
                 pair, all_pair_data,
-                f_slope, f_intercept, cl_intercept)
+                f_slope, f_intercept, cl_intercept,
+                force_predict=True)
 
             for param_name, source in sources.items():
                 val = getattr(pair, param_name, 0.0)
@@ -1643,19 +1830,19 @@ def run_batch_analysis(
         fig1 = plot_absorption_spectrum(salt, wl, T_list, alpha_results,
                                         show_all_planck=True)
         fig1.savefig(os.path.join(output_dir,
-                                  f"absorption_spectrum_{name}_predicted.pdf"),
-                     bbox_inches='tight')
+                                  f"absorption_spectrum_{name}_predicted.png"),
+                     bbox_inches='tight', dpi=1200)
 
         fig2 = plot_refractive_index(salt, wl, T_list, n_results)
         fig2.savefig(os.path.join(output_dir,
-                                  f"refractive_index_{name}_predicted.pdf"),
+                                  f"refractive_index_{name}_predicted.png"),
                      bbox_inches='tight')
 
         if len(T_kappa) > 1:
             fig3 = plot_planck_mean_vs_temperature(salt, T_kappa, kappa_P)
             fig3.savefig(os.path.join(output_dir,
-                                      f"planck_mean_{name}_predicted.pdf"),
-                         bbox_inches='tight')
+                                      f"planck_mean_{name}_predicted.png"),
+                         bbox_inches='tight', dpi=1200)
 
         batch_results[name + '_predicted'] = {
             'salt': salt,
@@ -1674,7 +1861,7 @@ def run_batch_analysis(
     plot_alpha_omega0_vs_r0(
         all_pair_data, output_dir,
         predicted_data=predicted_pair_data,
-        filename='alpha_omega0_vs_r0_with_predictions.pdf')
+        filename='alpha_omega0_vs_r0_with_predictions.png')
 
     # Print prediction summary
     print(f"\n{'='*60}")
@@ -1697,25 +1884,26 @@ def run_batch_analysis(
 # =============================================================================
 # Configuration guide:
 #
-# FITTED_SALTS — salts with experimental absorption data to fit against.
+# FITTED_SALTS -- salts with experimental absorption data to fit against.
 #   Required keys:
-#     'name'       : str — must match a name in SALT_REGISTRY
+#     'name'       : str -- must match a name in SALT_REGISTRY
 #   Optional keys (override defaults):
-#     'wl_range'       : (float, float) — wavelength range in meters
+#     'wl_range'       : (float, float) -- wavelength range in meters
 #     'n_wavelengths'  : int
-#     'T_range'        : (float, float) — temperature range in Kelvin
+#     'T_range'        : (float, float) -- temperature range in Kelvin
 #     'n_temperatures' : int
-#     'run_fit'        : bool — whether to run the optimizer
+#     'run_fit'        : bool -- whether to run the optimizer
 #     'fit_config'     : dict with keys:
 #         'mode'          : 'single' | 'weighted_average' | 'none'
-#         'fit_target'    : 'damping' | 'multiphonon' | ['gamma_slope', 'alpha_anh', 'C0_multi'] | list
+#         'fit_target'    : 'damping' | 'multiphonon' | 'all' | list
+#                           list example: ['gamma_slope', 'alpha_anh', 'C0_multi']
 #         'dataset_index' : int (for mode='single')
 #         'weights'       : list of float (for mode='weighted_average')
 #
-# PREDICTED_SALTS — salts without experimental data; alpha and C0 will
+# PREDICTED_SALTS -- salts without experimental data; alpha and C0 will
 #   be predicted from the correlation built in Phase 1.
 #   Same optional keys as FITTED_SALTS (except 'run_fit' and 'fit_config'
-#   are not used — parameters come from the correlation).
+#   are not used -- parameters come from the correlation).
 
 if __name__ == "__main__":
 
@@ -1729,9 +1917,9 @@ if __name__ == "__main__":
             'T_range': (1121, 1600),
             'run_fit': True,
             'fit_config': {
-                'mode': 'weighted_average',   # fit to multiple datasets
-                'fit_target': ['gamma_slope', 'alpha_anh', 'C0_multi'],          # fit 'gamma0', 'gamma_slope', 'alpha_anh', 'C0_multi'
-                'weights': [0.5, 0.5, 0],    # Barker + Varlamov, skip Wilmshurst
+                'mode': 'weighted_average',
+                'fit_target': ['gamma_slope', 'alpha_anh', 'C0_multi'],
+                'weights': [0.5, 0.5, 0],
             },
         },
         {
@@ -1741,7 +1929,7 @@ if __name__ == "__main__":
             'run_fit': True,
             'fit_config': {
                 'mode': 'single',
-                'dataset_index': 0,           # Barker 1972
+                'dataset_index': 0,
                 'fit_target': ['gamma_slope', 'alpha_anh', 'C0_multi'],
             },
         },
@@ -1752,7 +1940,7 @@ if __name__ == "__main__":
             'run_fit': True,
             'fit_config': {
                 'mode': 'single',
-                'dataset_index': 0,           # Chaleff endmember interpolation
+                'dataset_index': 0,
                 'fit_target': ['gamma_slope', 'alpha_anh', 'C0_multi'],
             },
         },
@@ -1763,7 +1951,7 @@ if __name__ == "__main__":
             'run_fit': True,
             'fit_config': {
                 'mode': 'single',
-                'dataset_index': 0,           # Liu 873K
+                'dataset_index': 0,
                 'fit_target': ['gamma_slope', 'alpha_anh', 'C0_multi'],
             },
         },
@@ -1795,6 +1983,36 @@ if __name__ == "__main__":
             'name': 'KCl',
             'wl_range': (0.15e-6, 80e-6),
             'T_range': (1042.7, 1600),
+            'n_temperatures': 50,
+        },
+        {
+            'name': 'NaF-UF$_4$',
+            'wl_range': (0.15e-6, 80e-6),
+            'T_range': (900, 1600),
+            'n_temperatures': 50,
+        },
+        {
+            'name': 'FLiNa+UF$_4$',
+            'wl_range': (0.15e-6, 80e-6),
+            'T_range': (737, 1600),
+            'n_temperatures': 50,
+        },
+        # {
+        #     'name': 'FLiNaK_UF4',
+        #     'wl_range': (0.15e-6, 160e-6),
+        #     'T_range': (763, 1600),
+        #     'n_temperatures': 50,
+        # },
+        {
+            'name': 'NaCl-UCl$_3$',
+            'wl_range': (0.15e-6, 80e-6),
+            'T_range': (829, 1600),
+            'n_temperatures': 50,
+        },
+        {
+            'name': 'NaCl-KCl',
+            'wl_range': (0.15e-6, 80e-6),
+            'T_range': (829, 1600),
             'n_temperatures': 50,
         },
     ]

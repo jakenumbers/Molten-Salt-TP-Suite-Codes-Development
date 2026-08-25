@@ -21,7 +21,7 @@ import os
 from typing import Dict, List, Tuple, Optional, Any
 
 # Import configurations and registry from the compact config file
-from salts_config import SaltConfig, IonPairParams, SALT_REGISTRY
+from salts_config_opt import SaltConfig, IonPairParams, SALT_REGISTRY
 
 # =============================================================================
 # 0. IEEE PLOT FORMATTING

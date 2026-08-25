@@ -50,7 +50,7 @@ import os
 from typing import Dict, List, Tuple, Optional
 
 # Import spectral model helpers
-from abs_model_claude_V2 import compute_alpha_total, planck_spectral_radiance
+from abs_model import compute_alpha_total, planck_spectral_radiance
 
 
 def place_legend_avoiding_points(ax, fontsize=9, candidate_locs=None, padding_px=2, first_label: Optional[str] = None):

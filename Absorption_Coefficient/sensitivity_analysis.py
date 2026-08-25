@@ -12,7 +12,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from abs_model_claude_V2 import (
+from abs_model import (
     SALT_REGISTRY, initialize_salt, calculate_oscillator_strengths,
     compute_alpha_total, planck_mean_absorption
 )
