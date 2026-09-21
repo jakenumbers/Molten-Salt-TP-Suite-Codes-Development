@@ -1077,27 +1077,60 @@ class MoltenSaltPDF:
         b_ph = 1.0 - numerator / denominator
         return np.clip(b_ph, 0, 1)
 
+    def _load_vdos_metrics(self):
+        """Loads VDOS interaction metrics M from the CSV for the current salt system."""
+        csv_path = os.path.join(get_scl_dir(), 'vdos_metrics_summary.csv')
+        self.vdos_metrics = {'L_classical': {}, 'L_quantum': {}, 'O_anionv': {}}
+        if not os.path.exists(csv_path):
+            return
+
+        try:
+            df = pd.read_csv(csv_path)
+            for idx, row in df.iterrows():
+                # Parse composition safely to catch arbitrary salt ordering
+                _, _, row_comp = parse_composition(str(row['composition']))
+                if row_comp == self.comp and abs(float(row['temperature_K']) - self.temp) < 1.0:
+                    for i in range(1, 10):  # Check up to 9 possible cation-cation pairs
+                        label_col = f'ca_{i}_label'
+                        if label_col in row and pd.notna(row[label_col]):
+                            cc_label = str(row[label_col]).strip()
+                            if '-' not in cc_label:
+                                continue
+                            c1, c2 = cc_label.split('-')
+                            pair_key = tuple(sorted([c1, c2]))
+                            
+                            lc_col = f'{i}__L_classical__mean'
+                            lq_col = f'{i}__L_quantum__mean'
+                            oa_col = f'{i}__O_anionv__mean'
+                            
+                            if lc_col in row and pd.notna(row[lc_col]):
+                                self.vdos_metrics['L_classical'][pair_key] = float(row[lc_col])
+                            if lq_col in row and pd.notna(row[lq_col]):
+                                self.vdos_metrics['L_quantum'][pair_key] = float(row[lq_col])
+                            if oa_col in row and pd.notna(row[oa_col]):
+                                self.vdos_metrics['O_anionv'][pair_key] = float(row[oa_col])
+                    break # Break early once the matching composition and temp are found
+        except Exception as e:
+            print(f"Warning: Could not load VDOS metrics correctly: {e}")
+
     # ------------------------------------------------------------------
     # Main analysis
     # ------------------------------------------------------------------
     def analyze_pdf(self):
         print(f"\n### Analysis for {self.comp} ###")
-        print(f"  b_PH factors: {self.b_ph_factors if self.b_ph_factors else 'concentration-only'}")
+        self._load_vdos_metrics() # Fetch the metrics from the CSV
 
         # Pre-compute overlaps / coordination as needed
         self._compute_vdos_overlaps()
-
-        # Compute penalty similarity if selected
         if 'penalty' in self.b_ph_factors:
             self._compute_penalty_similarity()
-
         if 'dispersion' in self.b_ph_factors:
             self._compute_dispersion_overlaps()
-
         if 'coordination' in self.b_ph_factors:
             self._compute_coordination_numbers()
 
-        total_weighted_scl = 0
+        var_keys = ['1', '0', 'Lc', 'Lq', 'Oa']
+        total_weighted_scl = {k: 0.0 for k in var_keys}
         total_weight_norm = 0
 
         ca_pairs = [p for _, p in self.ion_pairs.items() if p.type == 'ca']
@@ -1125,15 +1158,32 @@ class MoltenSaltPDF:
                 kf_val = 1 - (g_peak - g_min) / g_peak
             kf_val = np.clip(kf_val, 0, 1)
 
-            # b_PH (combined factors)
-            ph_val = self._calculate_combined_b_ph(name, ca_pairs, sum_ca_weights)
-            print(f"  b_PH: {ph_val:.4f}")
-
             cation = name.split('-')[0]
             cc_name = standardize_ion_pair(f"{cation}-{cation}")
             has_cc = cc_name in self.ion_pairs
 
-            b_KF_vals, b_NI_vals, b_PH_vals, beta_vals = [], [], [], []
+            # Calculate b_PH for the 5 variations concurrently
+            ph_vals = {k: 0.0 for k in var_keys}
+            for other in ca_pairs:
+                if other.name == name:
+                    continue
+                x_j = other.weight / sum_ca_weights if sum_ca_weights > 0 else 0
+                c_j = other.name.split('-')[0]
+                pair_key = tuple(sorted([cation, c_j]))
+                
+                ph_vals['1'] += x_j * 1.0
+                ph_vals['0'] += x_j * 0.0
+                ph_vals['Lc'] += x_j * (1 - self.vdos_metrics['L_classical'].get(pair_key, 1.0))
+                ph_vals['Lq'] += x_j * (1 - self.vdos_metrics['L_quantum'].get(pair_key, 1.0))
+                ph_vals['Oa'] += x_j * (1 - self.vdos_metrics['O_anionv'].get(pair_key, 1.0))
+
+            for k in var_keys:
+                ph_vals[k] = np.clip(ph_vals[k], 0, 1)
+
+            print(f"  b_PH_1: {ph_vals['1']:.4f} | b_PH_0: {ph_vals['0']:.4f} | b_PH_Lc: {ph_vals['Lc']:.4f} | b_PH_Lq: {ph_vals['Lq']:.4f} | b_PH_Oa: {ph_vals['Oa']:.4f}")
+
+            b_NI_vals = []
+            beta_vals = {k: [] for k in var_keys}
 
             for m, r_m in enumerate(transfer_points, 1):
                 g_tot_val = 0
@@ -1154,43 +1204,50 @@ class MoltenSaltPDF:
                     ni_val = 1 - (g_ideal_val / g_tot_val)
                 ni_val = np.clip(ni_val, 0, 1)
 
-                b_KF_vals.append(kf_val)
-                b_PH_vals.append(ph_val)
                 b_NI_vals.append(ni_val)
 
-                if kf_val == 1 or ph_val == 1 or ni_val == 1:
-                    beta = float('inf')
-                else:
-                    beta = (kf_val / (1 - kf_val)) + (ph_val / (1 - ph_val)) + (ni_val / (1 - ni_val))
-                beta_vals.append(beta)
+                for k in var_keys:
+                    ph = ph_vals[k]
+                    if kf_val == 1 or ph == 1 or ni_val == 1:
+                        beta = float('inf')
+                    else:
+                        beta = (kf_val / (1 - kf_val)) + (ph / (1 - ph)) + (ni_val / (1 - ni_val))
+                    beta_vals[k].append(beta)
 
             # --- Survival function ---
-            S_discrete = [1.0]
-            int_beta = 0
-            for beta in beta_vals:
-                if beta == float('inf'):
-                    int_beta = -float('inf')
-                else:
-                    int_beta -= beta * delta_r
-                S_discrete.append(np.exp(int_beta))
+            scl_pairs = {k: 0.0 for k in var_keys}
+            S_y_grids = {k: np.zeros_like(self.x_grid) for k in var_keys}
 
-            scl_pair = delta_r * sum(S_discrete[:-1])
+            for k in var_keys:
+                S_discrete = [1.0]
+                int_beta = 0
+                for beta in beta_vals[k]:
+                    if beta == float('inf'):
+                        int_beta = -float('inf')
+                    else:
+                        int_beta -= beta * delta_r
+                    S_discrete.append(np.exp(int_beta))
+
+                scl_pairs[k] = delta_r * sum(S_discrete[:-1])
+                
+                # Keep S(r) for Variation 1 active for the SCL plotting tools
+                if k == '1':
+                    curr_s_idx = 0
+                    for i, x in enumerate(self.x_grid):
+                        if curr_s_idx < len(transfer_points):
+                            if x >= transfer_points[curr_s_idx]:
+                                curr_s_idx += 1
+                        if curr_s_idx < len(S_discrete):
+                            S_y_grids[k][i] = S_discrete[curr_s_idx]
+                        else:
+                            S_y_grids[k][i] = S_discrete[-1]
+
             RTE = pair.weight / sum_ca_weights if sum_ca_weights > 0 else 0
-            total_weighted_scl += scl_pair * RTE
+            for k in var_keys:
+                total_weighted_scl[k] += scl_pairs[k] * RTE
             total_weight_norm += RTE
-            print(f"  SCL: {scl_pair:.3f} A (Weight: {RTE:.3f})")
 
-            # Map S(r) to fine grid
-            S_y_grid = np.zeros_like(self.x_grid)
-            curr_s_idx = 0
-            for i, x in enumerate(self.x_grid):
-                if curr_s_idx < len(transfer_points):
-                    if x >= transfer_points[curr_s_idx]:
-                        curr_s_idx += 1
-                if curr_s_idx < len(S_discrete):
-                    S_y_grid[i] = S_discrete[curr_s_idx]
-                else:
-                    S_y_grid[i] = S_discrete[-1]
+            print(f"  SCL_1: {scl_pairs['1']:.3f} A (Weight: {RTE:.3f})")
 
             # PMF and ω₀
             pmf_values, bond_strength, peak_x = self.calculate_pmf_and_bond_strength(name)
@@ -1198,13 +1255,12 @@ class MoltenSaltPDF:
             fundamental_frequency = self.calculate_fundamental_frequency(name, bond_strength)
             fit = self._fit_gaussian_to_peak(name)
 
-            if fundamental_frequency is not None and fit is not None:
-                print(f"  ω₀: {fundamental_frequency:.4f} rad/ps "
-                      f"(σ_L={fit['sigma_left']:.4f} Å, σ_R={fit['sigma_right']:.4f} Å, "
-                      f"k={bond_strength:.4f} kJ/mol/A^2)")
-
             self.ion_pair_results[name] = {
-                'scl': scl_pair,
+                'scl_1': scl_pairs['1'],
+                'scl_0': scl_pairs['0'],
+                'scl_Lc': scl_pairs['Lc'],
+                'scl_Lq': scl_pairs['Lq'],
+                'scl_Oa': scl_pairs['Oa'],
                 'peak_x': pair.peak[0],
                 'peak_y': pair.peak[1],
                 'minima_x': pair.minima[0],
@@ -1215,20 +1271,32 @@ class MoltenSaltPDF:
                 'bond_strength': bond_strength,
                 'reduced_mass': reduced_mass * 1000 if reduced_mass else None,
                 'fundamental_frequency': fundamental_frequency,
-                'b_ph': ph_val,
+                'b_ph_1': ph_vals['1'],
+                'b_ph_0': ph_vals['0'],
+                'b_ph_Lc': ph_vals['Lc'],
+                'b_ph_Lq': ph_vals['Lq'],
+                'b_ph_Oa': ph_vals['Oa'],
                 'gaussian_fit': fit,
             }
 
             self.plot_data.append({
                 'ion_pair_ca_i': name,
                 'x_range': self.x_grid,
-                'S_i': S_y_grid,
-                'x_SCL_pair': scl_pair,
+                'S_i': S_y_grids['1'],
+                'x_SCL_pair': scl_pairs['1'],
             })
 
-        self.avg_SCL = total_weighted_scl / total_weight_norm if total_weight_norm > 0 else 0
+        self.avg_SCL_1 = total_weighted_scl['1'] / total_weight_norm if total_weight_norm > 0 else 0
+        self.avg_SCL_0 = total_weighted_scl['0'] / total_weight_norm if total_weight_norm > 0 else 0
+        self.avg_SCL_Lc = total_weighted_scl['Lc'] / total_weight_norm if total_weight_norm > 0 else 0
+        self.avg_SCL_Lq = total_weighted_scl['Lq'] / total_weight_norm if total_weight_norm > 0 else 0
+        self.avg_SCL_Oa = total_weighted_scl['Oa'] / total_weight_norm if total_weight_norm > 0 else 0
+        
+        # Link avg_SCL so plotting and output scripts remain completely unbroken
+        self.avg_SCL = self.avg_SCL_1
+        
         self.plot_data.append({'avg_SCL': self.avg_SCL})
-        print(f"Average SCL: {self.avg_SCL:.4f} A")
+        print(f"Average SCL_1: {self.avg_SCL_1:.4f} A")
         self._save_csv_results()
 
     # ------------------------------------------------------------------
@@ -1238,19 +1306,21 @@ class MoltenSaltPDF:
         filename = os.path.join(get_scl_dir(), 'SCL_results.csv')
         file_exists = os.path.isfile(filename)
 
-        # Calculate deviation if experimental data is available
         deviation = ""
         if self.scl_bc > 0:
-            deviation = round(((self.avg_SCL - self.scl_bc) / self.scl_bc) * 100, 2)
+            deviation = round(((self.avg_SCL_1 - self.scl_bc) / self.scl_bc) * 100, 2)
 
         base_headers = [
             'Composition', 'Source', 'Temperature (K)', 
-            'Average SCL (A)', 'Experimental SCL (A)', 'Deviation'
+            'Avg SCL_1 (A)', 'Avg SCL_0 (A)', 'Avg SCL_Lc (A)', 'Avg SCL_Lq (A)', 'Avg SCL_Oa (A)',
+            'Experimental SCL (A)', 'Deviation'
         ]
         
         row = [
             self.comp, self.source, self.temp, 
-            round(self.avg_SCL, 5), self.scl_bc, deviation
+            round(self.avg_SCL_1, 5), round(self.avg_SCL_0, 5), round(self.avg_SCL_Lc, 5),
+            round(self.avg_SCL_Lq, 5), round(self.avg_SCL_Oa, 5),
+            self.scl_bc, deviation
         ]
 
         sorted_pairs = sorted(self.ion_pair_results.items())
@@ -1259,27 +1329,34 @@ class MoltenSaltPDF:
 
         for i in range(1, 7):
             headers.extend([
-                f'Pair {i} Label', f'Pair {i} SCL_i (A)',
+                f'Pair {i} Label', 
+                f'Pair {i} SCL_1 (A)', f'Pair {i} SCL_0 (A)', f'Pair {i} SCL_Lc (A)', 
+                f'Pair {i} SCL_Lq (A)', f'Pair {i} SCL_Oa (A)',
                 f'Pair {i} Peak X (A)', f'Pair {i} Peak Y',
                 f'Pair {i} Min X (A)', f'Pair {i} Min Y',
                 f'Pair {i} CC Peak X (A)', f'Pair {i} CC Peak Y',
                 f'Pair {i} PMF at Peak (kJ/mol)', f'Pair {i} Bond Strength (kJ/mol/A^2)',
                 f'Pair {i} Reduced Mass (g/mol)', f'Pair {i} Fundamental Frequency (rad/ps)',
-                f'Pair {i} b_PH',
+                f'Pair {i} b_PH_1', f'Pair {i} b_PH_0', f'Pair {i} b_PH_Lc', 
+                f'Pair {i} b_PH_Lq', f'Pair {i} b_PH_Oa',
             ])
             if i <= len(sorted_pairs):
                 nm, res = sorted_pairs[i - 1]
                 data.extend([
-                    nm, round(res['scl'], 5),
+                    nm, 
+                    round(res['scl_1'], 5), round(res['scl_0'], 5), round(res['scl_Lc'], 5), 
+                    round(res['scl_Lq'], 5), round(res['scl_Oa'], 5),
                     round(res['peak_x'] or 0, 5), round(res['peak_y'] or 0, 5),
                     round(res['minima_x'] or 0, 5), round(res['minima_y'] or 0, 5),
                     round(res['cc_peak_x'] or 0, 5), round(res['cc_peak_y'] or 0, 5),
                     round(res['pmf_at_peak'] or 0, 5), round(res['bond_strength'] or 0, 5),
                     round(res['reduced_mass'] or 0, 5), round(res['fundamental_frequency'] or 0, 5),
-                    round(res.get('b_ph', 0), 5),
+                    round(res.get('b_ph_1', 0), 5), round(res.get('b_ph_0', 0), 5), 
+                    round(res.get('b_ph_Lc', 0), 5), round(res.get('b_ph_Lq', 0), 5), 
+                    round(res.get('b_ph_Oa', 0), 5),
                 ])
             else:
-                data.extend([''] * 13)
+                data.extend([''] * 21)
 
         if file_exists:
             with open(filename, 'r') as f:
@@ -1886,6 +1963,34 @@ def main():
         b_ph_factors={},
     )
 
+    # --- Structural Studies (18) ---
+    analyzer.add_molten_salt(_prep_path("1.0LiCl", 'Li7Numbers, 2026', 900), "1.0LiCl", 'Li7Numbers, 2026', 900, 4.10511)
+    analyzer.add_molten_salt(_prep_path("1.0LiCl", 'Li6Numbers, 2026', 900), "1.0LiCl", 'Li6Numbers, 2026', 900, 4.10511)
+    # analyzer.add_molten_salt(_prep_path("1.0RbCl", 'Numbers, 2026', 1015), "1.0RbCl", 'Numbers, 2026', 1015, 0)
+    analyzer.add_molten_salt(_prep_path("0.68KCl-0.32MgCl2", 'Numbers, 2026', 903), "0.68KCl-0.32MgCl2", 'Numbers, 2026', 903, 3.91988)
+    # analyzer.add_molten_salt(_prep_path("0.60LiCl-0.40MgCl2", 'Numbers, 2026', 870), "0.60LiCl-0.40MgCl2", 'Numbers, 2026', 870, 0)
+    analyzer.add_molten_salt(_prep_path("0.68KCl-0.32MgCl2", 'Numbers, 2026', 703), "0.68KCl-0.32MgCl2", 'Numbers, 2026', 703, 3.91988)
+    analyzer.add_molten_salt(_prep_path("0.5NaCl-0.5KCl", 'Numbers, 2026', 950), "0.5NaCl-0.5KCl", 'Numbers, 2026', 950, 4.32778)
+    # analyzer.add_molten_salt(_prep_path("0.5LiCl-0.5KCl", 'Numbers, 2026', 760), "0.5LiCl-0.5KCl", 'Numbers, 2026', 760, 0)
+    # analyzer.add_molten_salt(_prep_path("0.56NaCl-0.44MgCl2", 'Numbers, 2026', 760), "0.56NaCl-0.44MgCl2", 'Numbers, 2026', 760, 0)
+    analyzer.add_molten_salt(_prep_path("0.535NaCl-0.315MgCl2-0.15CaCl2", 'Numbers, 2026', 855), "0.535NaCl-0.315MgCl2-0.15CaCl2", 'Numbers, 2026', 855, 3.52027)
+    # analyzer.add_molten_salt(_prep_path("0.535LiCl-0.086NaCl-0.379KCl", 'Numbers, 2026', 650), "0.535LiCl-0.086NaCl-0.379KCl", 'Numbers, 2026', 650, 0)
+    analyzer.add_molten_salt(_prep_path("0.4903NaCl-0.5097CaCl2", 'Numbers, 2026', 800), "0.4903NaCl-0.5097CaCl2", 'Numbers, 2026', 800, 3.76913)
+    # analyzer.add_molten_salt(_prep_path("0.43KCl-0.57MgCl2", 'Numbers, 2026', 750), "0.43KCl-0.57MgCl2", 'Numbers, 2026', 750, 0)
+    # analyzer.add_molten_salt(_prep_path("0.33NaCl-0.22KCl-0.45MgCl2", 'Numbers, 2026', 750), "0.33NaCl-0.22KCl-0.45MgCl2", 'Numbers, 2026', 750, 0)
+    # analyzer.add_molten_salt(_prep_path("0.2839NaCl-0.2725KCl-0.4436MgCl2", 'Numbers, 2026', 680), "0.2839NaCl-0.2725KCl-0.4436MgCl2", 'Numbers, 2026', 680, 0)
+    # analyzer.add_molten_salt(_prep_path("0.275NaCl-0.325KCl-0.40MgCl2", 'Numbers, 2026', 700), "0.275NaCl-0.325KCl-0.40MgCl2", 'Numbers, 2026', 700, 0)
+    # analyzer.add_molten_salt(_prep_path("0.25LiCl-0.75KCl", 'Numbers, 2026', 934), "0.25LiCl-0.75KCl", 'Numbers, 2026', 934, 0)
+
+    analyzer.add_molten_salt(_prep_path("0.637LiCl-0.363KCl", 'Numbers, 2026', 690), "0.637LiCl-0.363KCl", 'Numbers, 2026', 690, 4.05630)
+    analyzer.add_molten_salt(_prep_path("1.0CaCl2", 'Numbers, 2026', 1060), "1.0CaCl2", 'Numbers, 2026', 1060, 7.72598)
+    # analyzer.add_molten_salt(_prep_path("1.00CsCl", 'Numbers, 2026', 935), "1.00CsCl", 'Numbers, 2026', 935, 0)
+    analyzer.add_molten_salt(_prep_path("1.00LiCl", 'Numbers, 2026', 900), "1.00LiCl", 'Numbers, 2026', 900, 4.10511)
+    analyzer.add_molten_salt(_prep_path("1.00NaCl", 'Numbers, 2026', 1090), "1.00NaCl", 'Numbers, 2026', 1090, 4.48028)
+    analyzer.add_molten_salt(_prep_path("1.00MgCl2", 'Numbers, 2026', 1000), "1.00MgCl2", 'Numbers, 2026', 1000, 4.76796)
+    analyzer.add_molten_salt(_prep_path("1.00KCl", 'Numbers, 2026', 1060), "1.00KCl", 'Numbers, 2026', 1060, 4.47675)
+    
+
     # # --- Unary Salts (11) ---
     # analyzer.add_molten_salt(_prep_path("1.0LiF", 'Walz, 2019', 1121), "1.0LiF", 'Walz, 2019', 1121, 3.28553)
     # analyzer.add_molten_salt(_prep_path("1.0NaF", 'Walz, 2019', 1266), "1.0NaF", 'Walz, 2019', 1266, 5.22361)
@@ -1906,11 +2011,11 @@ def main():
     # analyzer.add_molten_salt(_prep_path("0.66LiF-0.34BeF2", 'Yin, 2025', 973), "0.66LiF-0.34BeF2", 'Yin, 2025', 973, 1.90187)
     # analyzer.add_molten_salt(_prep_path("0.32MgCl2-0.68KCl", 'Walker, 2026', 723), "0.32MgCl2-0.68KCl", 'Walker, 2026', 723, 3.91988)
     # analyzer.add_molten_salt(_prep_path("0.5LiCl-0.5KCl", 'Jiang, 2016', 727), "0.5LiCl-0.5KCl", 'Jiang, 2016', 727, 0)
-    # analyzer.add_molten_salt(_prep_path("0.637LiCl-0.363KCl", 'Jiang, 2016', 750), "0.637LiCl-0.363KCl", 'Jiang, 2016', 750, 0)
+    # analyzer.add_molten_salt(_prep_path("0.637LiCl-0.363KCl", 'Jiang, 2016', 750), "0.637LiCl-0.363KCl", 'Jiang, 2016', 750,  4.05630)
     # analyzer.add_molten_salt(_prep_path("0.5NaCl-0.5KCl", 'Manga, 2014', 1100), "0.5NaCl-0.5KCl", 'Manga, 2014', 1100, 4.32778)
     # analyzer.add_molten_salt(_prep_path("0.5NaCl-0.5KCl", 'Walker, 2026', 1100), "0.5NaCl-0.5KCl", 'Walker, 2026', 1100, 4.32778)
-    analyzer.add_molten_salt(_prep_path("0.5LiCl-0.5KCl", 'NumbersNVE, 2026', 738), "0.5LiCl-0.5KCl", 'NumbersNVE, 2026', 738, 0)
-    analyzer.add_molten_salt(_prep_path("0.5LiCl-0.5KCl", 'NumbersNVT, 2026', 738), "0.5LiCl-0.5KCl", 'NumbersNVT, 2026', 738, 0)
+    # # analyzer.add_molten_salt(_prep_path("0.5LiCl-0.5KCl", 'NumbersNVE, 2026', 738), "0.5LiCl-0.5KCl", 'NumbersNVE, 2026', 738, 0)
+    # # analyzer.add_molten_salt(_prep_path("0.5LiCl-0.5KCl", 'NumbersNVT, 2026', 738), "0.5LiCl-0.5KCl", 'NumbersNVT, 2026', 738, 0)
     # analyzer.add_molten_salt(_prep_path("0.6NaCl-0.4KCl", 'Walker, 2026', 1100), "0.6NaCl-0.4KCl", 'Walker, 2026', 1100, 4.32778)
     # analyzer.add_molten_salt(_prep_path("0.3NaCl-0.7KCl", 'Walker, 2026', 1100), "0.3NaCl-0.7KCl", 'Walker, 2026', 1100, 4.32778)
     # analyzer.add_molten_salt(_prep_path("0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073), "0.7LiCl-0.3CaCl2", 'Liang, 2024', 1073, 0)
