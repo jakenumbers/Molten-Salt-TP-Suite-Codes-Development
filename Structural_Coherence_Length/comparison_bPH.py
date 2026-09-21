@@ -93,6 +93,31 @@ def plot_all_bph_variations(csv_file="SCL_results.csv"):
         'Oa': 'Anion VDOS ($O_a$)'
     }
 
+    # Short symbol identifying the b_PH method used for each variation.
+    # These are attached to the 'With b_PH' legend entry so the ablation
+    # variable shown in the plot is unambiguous.
+    bph_symbols = {
+        '1': r'$x_j$',
+        'Lc': r'$L_c$',
+        'Lq': r'$L_q$',
+        'Oa': r'$O_a$'
+    }
+
+    # ---------------------------------------------------------
+    # Check whether the dataset contains only one salt family
+    # (only chlorides or only fluorides). If so, the Chloride /
+    # Fluoride distinction is meaningless and is removed from
+    # both the bars (hatching) and the legend.
+    # ---------------------------------------------------------
+    def get_family(comp):
+        return 'Fluoride' if ('F' in comp and 'Cl' not in comp) else 'Chloride'
+
+    families_present = sorted(set(df['Composition'].apply(get_family)))
+    both_families = len(families_present) > 1
+    if not both_families:
+        print(f"Only {families_present[0]} salts present - removing the "
+              f"Fluoride/Chloride distinction from the plots and legend.")
+
     for var_key, var_title in variations.items():
         col_name = f'Avg SCL_{var_key} (A)'
         if col_name not in df.columns:
@@ -124,42 +149,45 @@ def plot_all_bph_variations(csv_file="SCL_results.csv"):
         # ------------------------------------------------
 
         for i, raw_label in enumerate(raw_labels):
-            family = 'Fluoride' if 'F' in raw_label and 'Cl' not in raw_label else 'Chloride'
+            family = get_family(raw_label)
             complexity = get_sort_key(raw_label)[1] # Complexity is the 2nd item in the sort key tuple
+            
+            # Hatching only encodes the Fluoride/Chloride distinction, so it is
+            # dropped when the dataset holds a single salt family.
+            hatched = both_families and family == 'Fluoride'
             
             # UNARY SALTS (Only plot the "With bPH" variant, centered)
             if complexity == 1:
-                if family == 'Fluoride':
-                    ax.bar(x[i], bph_errors[i], width, color='tab:blue', edgecolor='white', hatch='///', zorder=3)
+                ax.bar(x[i], bph_errors[i], width, color='tab:blue',
+                       edgecolor='white' if hatched else 'black',
+                       linewidth=1.1, hatch='///' if hatched else None, zorder=3)
+                if hatched:
                     ax.bar(x[i], bph_errors[i], width, color='none', edgecolor='black', linewidth=1.1, zorder=4)
-                else:
-                    ax.bar(x[i], bph_errors[i], width, color='tab:blue', edgecolor='black', linewidth=1.1, zorder=3)
             
             # MIXTURES (Plot Grouped Bars)
             else:
                 pos_bph = x[i] - width/2
                 pos_nobph = x[i] + width/2
                 
-                if family == 'Fluoride':
-                    # With bPH (Blue base, White Hatch, Black Edge)
-                    ax.bar(pos_bph, bph_errors[i], width, color='tab:blue', edgecolor='white', hatch='///', zorder=3)
+                # With bPH (Blue base, White Hatch when hatched, Black Edge)
+                ax.bar(pos_bph, bph_errors[i], width, color='tab:blue',
+                       edgecolor='white' if hatched else 'black',
+                       linewidth=1.1, hatch='///' if hatched else None, zorder=3)
+                
+                # No bPH (Red base, White Hatch when hatched, Black Edge)
+                ax.bar(pos_nobph, no_bph_errors[i], width, color='tab:red',
+                       edgecolor='white' if hatched else 'black',
+                       linewidth=1.1, hatch='///' if hatched else None, zorder=3)
+                
+                if hatched:
                     ax.bar(pos_bph, bph_errors[i], width, color='none', edgecolor='black', linewidth=1.1, zorder=4)
-                    
-                    # No bPH (Red base, White Hatch, Black Edge)
-                    ax.bar(pos_nobph, no_bph_errors[i], width, color='tab:red', edgecolor='white', hatch='///', zorder=3)
                     ax.bar(pos_nobph, no_bph_errors[i], width, color='none', edgecolor='black', linewidth=1.1, zorder=4)
-                else:
-                    # Solid Blue
-                    ax.bar(pos_bph, bph_errors[i], width, color='tab:blue', edgecolor='black', linewidth=1.1, zorder=3)
-                    # Solid Red
-                    ax.bar(pos_nobph, no_bph_errors[i], width, color='tab:red', edgecolor='black', linewidth=1.1, zorder=3)
         
         # Formatting Y-Axis
         max_err = max(np.max(np.abs(bph_errors)), np.max(np.abs(no_bph_errors)))
         y_lim = max(max_err * 1.15, 20)
         ax.set_ylim(-y_lim, y_lim)
         ax.set_ylabel(r'$\ell_{{\mathrm{{sc}}}}$ Deviation (%)')
-        ax.set_title(f'SCM Accuracy: Variation [{var_title}] vs [$b_{{PH}}=0$]\n(Actinides Grouped at Right)', pad=15)
         
         # Formatting X-Axis
         ax.set_xticks(x)
@@ -171,7 +199,11 @@ def plot_all_bph_variations(csv_file="SCL_results.csv"):
         def assign_group(comp):
             has_act, comp_len = get_sort_key(comp)[:2]
             if has_act == 1: return "Actinide"
-            is_f = 'F' in comp and 'Cl' not in comp
+            # When only one salt family is present there is no point in
+            # labelling the groups by anion, so use plain Unary/Mixture names
+            if not both_families:
+                return "Unaries" if comp_len == 1 else "Mixtures"
+            is_f = get_family(comp) == 'Fluoride'
             if comp_len == 1 and is_f: return "Fluoride\nUnaries"
             if comp_len == 1 and not is_f: return "Chloride\nUnaries"
             if comp_len > 1 and is_f: return "Fluoride\nMixtures"
@@ -221,12 +253,22 @@ def plot_all_bph_variations(csv_file="SCL_results.csv"):
         
         ax.grid(axis='y', linestyle='--', color='#E0E0E0', zorder=0)
 
-        # Create Custom Legend
+        # Create Custom Legend ('With b_PH' is tagged with the ablation symbol)
         custom_legend = [
-            Patch(facecolor='tab:blue', edgecolor='black', label=r'With $b_{PH}$'),
-            Patch(facecolor='tab:red', edgecolor='black', label=r'No $b_{PH}$'),
-            Patch(facecolor='gray', edgecolor='black', label='Chloride'),
-            Patch(facecolor='gray', edgecolor='white', hatch='///', label='Fluoride'),
+            Patch(facecolor='tab:blue', edgecolor='black',
+                  label=rf'With $b_{{PH}}$ - {bph_symbols[var_key]}'),
+            Patch(facecolor='tab:red', edgecolor='black', label=r'No $b_{PH}$')
+        ]
+        
+        # The Fluoride/Chloride entries are only meaningful when both families
+        # are present in the dataset
+        if both_families:
+            custom_legend += [
+                Patch(facecolor='gray', edgecolor='black', label='Chloride'),
+                Patch(facecolor='gray', edgecolor='white', hatch='///', label='Fluoride')
+            ]
+        
+        custom_legend += [
             Line2D([0], [0], color='tab:blue', lw=2, linestyle='-.', label=r'Avg Bias (With $b_{PH}$)'),
             Line2D([0], [0], color='tab:red', lw=2, linestyle='-.', label=r'Avg Bias (No $b_{PH}$)')
         ]
@@ -239,7 +281,7 @@ def plot_all_bph_variations(csv_file="SCL_results.csv"):
         output_filename = f'Structural_Coherence_Length/SCL_Summary_Deviation_bPH_{var_key}.png'
         os.makedirs('Structural_Coherence_Length', exist_ok=True)
         plt.savefig(output_filename, bbox_inches='tight')
-        print(f"Saved comparison plot to {output_filename}")
+        print(f"Saved comparison plot for [$b_{{PH}}$ = {var_title}] to {output_filename}")
         plt.close(fig)
 
 if __name__ == "__main__":

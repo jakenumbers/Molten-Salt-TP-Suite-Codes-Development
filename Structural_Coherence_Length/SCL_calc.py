@@ -1080,7 +1080,7 @@ class MoltenSaltPDF:
     def _load_vdos_metrics(self):
         """Loads VDOS interaction metrics M from the CSV for the current salt system."""
         csv_path = os.path.join(get_scl_dir(), 'vdos_metrics_summary.csv')
-        self.vdos_metrics = {'L_classical': {}, 'L_quantum': {}, 'O_anionv': {}}
+        self.vdos_metrics = {'L_classical': {}, 'L_quantum': {}, 'O_anion_csv': {}}
         if not os.path.exists(csv_path):
             return
 
@@ -1101,17 +1101,25 @@ class MoltenSaltPDF:
                             
                             lc_col = f'{i}__L_classical__mean'
                             lq_col = f'{i}__L_quantum__mean'
-                            oa_col = f'{i}__O_anionv__mean'
+                            oa_col = f'{i}__O_anion_csv__mean'  # canonical name written by Pipeline/analyze_vdos.py
                             
                             if lc_col in row and pd.notna(row[lc_col]):
                                 self.vdos_metrics['L_classical'][pair_key] = float(row[lc_col])
                             if lq_col in row and pd.notna(row[lq_col]):
                                 self.vdos_metrics['L_quantum'][pair_key] = float(row[lq_col])
                             if oa_col in row and pd.notna(row[oa_col]):
-                                self.vdos_metrics['O_anionv'][pair_key] = float(row[oa_col])
+                                self.vdos_metrics['O_anion_csv'][pair_key] = float(row[oa_col])
                     break # Break early once the matching composition and temp are found
         except Exception as e:
             print(f"Warning: Could not load VDOS metrics correctly: {e}")
+
+        # A missing metric silently collapses that b_PH variation to 0 (identical
+        # to the b_PH = 0 case), so surface it instead of failing quietly.
+        if '-' in str(self.comp):
+            missing = [m for m, d in self.vdos_metrics.items() if not d]
+            if missing:
+                print(f"Warning: vdos_metrics_summary.csv has no {', '.join(missing)} values for "
+                      f"{self.comp} @ {self.temp} K - those b_PH variations default to 0.")
 
     # ------------------------------------------------------------------
     # Main analysis
@@ -1175,7 +1183,7 @@ class MoltenSaltPDF:
                 ph_vals['0'] += x_j * 0.0
                 ph_vals['Lc'] += x_j * (1 - self.vdos_metrics['L_classical'].get(pair_key, 1.0))
                 ph_vals['Lq'] += x_j * (1 - self.vdos_metrics['L_quantum'].get(pair_key, 1.0))
-                ph_vals['Oa'] += x_j * (1 - self.vdos_metrics['O_anionv'].get(pair_key, 1.0))
+                ph_vals['Oa'] += x_j * (1 - self.vdos_metrics['O_anion_csv'].get(pair_key, 1.0))
 
             for k in var_keys:
                 ph_vals[k] = np.clip(ph_vals[k], 0, 1)
